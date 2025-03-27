@@ -23,12 +23,8 @@ export default function HomeScreen() {
   };
 
   useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      loadProducts();
-    });
-
-    return unsubscribe;
-  }, [navigation]);
+    loadProducts();
+  }, []);
 
   const handleDelete = async (id: number) => {
     try {
@@ -42,20 +38,10 @@ export default function HomeScreen() {
   const handleQuantityChange = async (id: number, currentQuantity: number, increment: boolean) => {
     try {
       const newQuantity = increment ? currentQuantity + 1 : Math.max(0, currentQuantity - 1);
-      await updateProduct(id, newQuantity, products.find(p => p.id === id)?.weight || 0);
+      await updateProduct(id, newQuantity);
       loadProducts();
     } catch (error) {
       console.error('Erro ao atualizar quantidade:', error);
-    }
-  };
-
-  const handleWeightChange = async (id: number, currentWeight: number, increment: boolean) => {
-    try {
-      const newWeight = increment ? currentWeight + 10 : Math.max(0, currentWeight - 10);
-      await updateProduct(id, products.find(p => p.id === id)?.quantity || 0, newWeight);
-      loadProducts();
-    } catch (error) {
-      console.error('Erro ao atualizar peso:', error);
     }
   };
 
@@ -63,23 +49,11 @@ export default function HomeScreen() {
     try {
       const newQuantity = parseInt(value, 10);
       if (!isNaN(newQuantity) && newQuantity >= 0) {
-        await updateProduct(id, newQuantity, products.find(p => p.id === id)?.weight || 0);
+        await updateProduct(id, newQuantity);
         loadProducts();
       }
     } catch (error) {
       console.error('Erro ao atualizar quantidade:', error);
-    }
-  };
-
-  const handleWeightInput = async (id: number, value: string) => {
-    try {
-      const newWeight = parseInt(value, 10);
-      if (!isNaN(newWeight) && newWeight >= 0) {
-        await updateProduct(id, products.find(p => p.id === id)?.quantity || 0, newWeight);
-        loadProducts();
-      }
-    } catch (error) {
-      console.error('Erro ao atualizar peso:', error);
     }
   };
 
@@ -118,32 +92,6 @@ export default function HomeScreen() {
                 icon="plus"
                 size={20}
                 onPress={() => handleQuantityChange(item.id, item.quantity, true)}
-              />
-            </View>
-          </View>
-          <View style={styles.weightContainer}>
-            <View style={styles.weightInputContainer}>
-              <Text variant="bodyMedium">Peso: </Text>
-              <TextInput
-                value={item.weight.toString()}
-                onChangeText={(value) => handleWeightInput(item.id, value)}
-                keyboardType="numeric"
-                style={styles.input}
-                mode="outlined"
-                dense
-              />
-              <Text variant="bodyMedium">g</Text>
-            </View>
-            <View style={styles.weightButtons}>
-              <IconButton
-                icon="minus"
-                size={20}
-                onPress={() => handleWeightChange(item.id, item.weight, false)}
-              />
-              <IconButton
-                icon="plus"
-                size={20}
-                onPress={() => handleWeightChange(item.id, item.weight, true)}
               />
             </View>
           </View>
@@ -193,25 +141,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
-  },
-  weightContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
   },
   quantityButtons: {
     flexDirection: 'row',
   },
-  weightButtons: {
-    flexDirection: 'row',
-  },
   quantityInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  weightInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,

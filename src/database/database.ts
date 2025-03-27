@@ -6,18 +6,13 @@ export interface Product {
   id: number;
   name: string;
   quantity: number;
-  weight: number;
-}
-
-interface LastInsertId {
-  id: number;
 }
 
 export const initDatabase = () => {
   return new Promise((resolve, reject) => {
     try {
       db.execSync(
-        'CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, quantity INTEGER NOT NULL, weight INTEGER NOT NULL);'
+        'CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, quantity INTEGER NOT NULL);'
       );
       resolve(true);
     } catch (error) {
@@ -26,13 +21,13 @@ export const initDatabase = () => {
   });
 };
 
-export const addProduct = (name: string, quantity: number, weight: number): Promise<number> => {
+export const addProduct = (name: string, quantity: number): Promise<number> => {
   return new Promise((resolve, reject) => {
     try {
       db.execSync(
-        `INSERT INTO products (name, quantity, weight) VALUES ('${name}', ${quantity}, ${weight});`
+        `INSERT INTO products (name, quantity) VALUES ('${name}', ${quantity});`
       );
-      const result = db.getFirstSync('SELECT last_insert_rowid() as id;') as LastInsertId;
+      const result = db.getFirstSync('SELECT last_insert_rowid() as id;') as { id: number };
       if (result) {
         resolve(result.id);
       } else {
@@ -55,11 +50,11 @@ export const getProducts = (): Promise<Product[]> => {
   });
 };
 
-export const updateProduct = (id: number, quantity: number, weight: number): Promise<void> => {
+export const updateProduct = (id: number, quantity: number): Promise<void> => {
   return new Promise((resolve, reject) => {
     try {
       db.execSync(
-        `UPDATE products SET quantity = ${quantity}, weight = ${weight} WHERE id = ${id};`
+        `UPDATE products SET quantity = ${quantity} WHERE id = ${id};`
       );
       resolve();
     } catch (error) {

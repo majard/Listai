@@ -15,18 +15,13 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.listai.app"
+      "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      },
-      "package": "com.listai.app"
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
+      }
     }
   }
 }
