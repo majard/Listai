@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, FlatList, StyleSheet, Clipboard } from 'react-native';
 import { FAB, Card, Text, IconButton, useTheme, Button, TextInput } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Product, getProducts, deleteProduct, updateProduct } from '../database/database';
 import { RootStackParamList } from '../types/navigation';
@@ -28,6 +28,7 @@ const getEmojiForProduct = (name: string): string => {
 export default function HomeScreen() {
   const [products, setProducts] = useState<Product[]>([]);
   const navigation = useNavigation<HomeScreenNavigationProp>();
+  const route = useRoute();
   const theme = useTheme();
 
   const loadProducts = async () => {
@@ -42,6 +43,19 @@ export default function HomeScreen() {
   useEffect(() => {
     loadProducts();
   }, []);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      const params = route.params as { shouldRefresh?: boolean };
+      if (params?.shouldRefresh) {
+        loadProducts();
+        // Reset the refresh flag
+        navigation.setParams({ shouldRefresh: false });
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation, route.params]);
 
   const handleDelete = async (id: number) => {
     try {
@@ -87,7 +101,6 @@ export default function HomeScreen() {
     });
 
     await Clipboard.setString(text);
-    // You might want to show a snackbar or alert here to confirm the copy
   };
 
   const renderItem = ({ item }: { item: Product }) => (

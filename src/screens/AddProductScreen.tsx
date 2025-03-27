@@ -20,7 +20,8 @@ export default function AddProductScreen() {
         name,
         parseInt(quantity, 10)
       );
-      navigation.goBack();
+      // Navigate back to Home with refresh parameter
+      navigation.navigate('Home', { shouldRefresh: true });
     } catch (error) {
       console.error('Erro ao adicionar produto:', error);
     }
