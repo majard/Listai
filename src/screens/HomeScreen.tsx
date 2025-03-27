@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, FlatList, StyleSheet } from 'react-native';
-import { FAB, Card, Text, IconButton, useTheme } from 'react-native-paper';
+import { FAB, Card, Text, IconButton, useTheme, TextInput } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Product, getProducts, deleteProduct, updateProduct } from '../database/database';
@@ -59,6 +59,30 @@ export default function HomeScreen() {
     }
   };
 
+  const handleQuantityInput = async (id: number, value: string) => {
+    try {
+      const newQuantity = parseInt(value, 10);
+      if (!isNaN(newQuantity) && newQuantity >= 0) {
+        await updateProduct(id, newQuantity, products.find(p => p.id === id)?.weight || 0);
+        loadProducts();
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar quantidade:', error);
+    }
+  };
+
+  const handleWeightInput = async (id: number, value: string) => {
+    try {
+      const newWeight = parseInt(value, 10);
+      if (!isNaN(newWeight) && newWeight >= 0) {
+        await updateProduct(id, products.find(p => p.id === id)?.quantity || 0, newWeight);
+        loadProducts();
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar peso:', error);
+    }
+  };
+
   const renderItem = ({ item }: { item: Product }) => (
     <Card style={styles.card}>
       <Card.Content>
@@ -73,7 +97,17 @@ export default function HomeScreen() {
         </View>
         <View style={styles.cardContent}>
           <View style={styles.quantityContainer}>
-            <Text variant="bodyMedium">Quantidade: {item.quantity}</Text>
+            <View style={styles.quantityInputContainer}>
+              <Text variant="bodyMedium">Quantidade: </Text>
+              <TextInput
+                value={item.quantity.toString()}
+                onChangeText={(value) => handleQuantityInput(item.id, value)}
+                keyboardType="numeric"
+                style={styles.input}
+                mode="outlined"
+                dense
+              />
+            </View>
             <View style={styles.quantityButtons}>
               <IconButton
                 icon="minus"
@@ -88,7 +122,18 @@ export default function HomeScreen() {
             </View>
           </View>
           <View style={styles.weightContainer}>
-            <Text variant="bodyMedium">Peso: {item.weight}g</Text>
+            <View style={styles.weightInputContainer}>
+              <Text variant="bodyMedium">Peso: </Text>
+              <TextInput
+                value={item.weight.toString()}
+                onChangeText={(value) => handleWeightInput(item.id, value)}
+                keyboardType="numeric"
+                style={styles.input}
+                mode="outlined"
+                dense
+              />
+              <Text variant="bodyMedium">g</Text>
+            </View>
             <View style={styles.weightButtons}>
               <IconButton
                 icon="minus"
@@ -160,6 +205,20 @@ const styles = StyleSheet.create({
   },
   weightButtons: {
     flexDirection: 'row',
+  },
+  quantityInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  weightInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  input: {
+    flex: 1,
+    marginHorizontal: 8,
   },
   fab: {
     position: 'absolute',
