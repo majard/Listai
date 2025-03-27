@@ -38,6 +38,7 @@ export default function App() {
               headerTitleStyle: {
                 fontWeight: 'bold',
               },
+              animation: 'slide_from_right',
             }}
           >
             <Stack.Screen 

@@ -14,7 +14,7 @@
   "bugs": {
     "url": "https://github.com/microsoft/TypeScript/issues"
   },
-  "main": "./lib/typescript.js",
+  "main": "node_modules/expo/AppEntry.js",
   "typings": "./lib/typescript.d.ts",
   "bin": {
     "tsc": "./bin/tsc",
@@ -34,6 +34,7 @@
     "!**/.gitattributes"
   ],
   "devDependencies": {
+    "@babel/core": "^7.20.0",
     "@dprint/formatter": "^0.4.1",
     "@dprint/typescript": "0.93.3",
     "@esfx/canceltoken": "^1.0.0",
@@ -75,9 +76,10 @@
     "playwright": "^1.49.1",
     "source-map-support": "^0.5.21",
     "tslib": "^2.8.1",
-    "typescript": "^5.7.2",
+    "typescript": "^5.1.3",
     "typescript-eslint": "^8.18.1",
-    "which": "^3.0.1"
+    "which": "^3.0.1",
+    "@types/react": "~18.3.12"
   },
   "overrides": {
     "typescript@*": "$typescript"
@@ -94,7 +96,11 @@
     "lint": "hereby lint",
     "knip": "hereby knip",
     "format": "dprint fmt",
-    "setup-hooks": "node scripts/link-hooks.mjs"
+    "setup-hooks": "node scripts/link-hooks.mjs",
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web"
   },
   "browser": {
     "fs": false,
@@ -114,12 +120,16 @@
   "gitHead": "beb69e4cdd61b1a0fd9ae21ae58bd4bd409d7217",
   "private": true,
   "dependencies": {
-    "@react-native-async-storage/async-storage": "^2.1.2",
-    "@react-navigation/native": "^7.0.19",
-    "@react-navigation/native-stack": "^7.3.3",
-    "expo-sqlite": "^15.1.3",
-    "react-native-paper": "^5.13.1",
-    "react-native-safe-area-context": "^5.3.0",
-    "react-native-screens": "^4.10.0"
+    "@react-native-async-storage/async-storage": "1.23.1",
+    "@react-navigation/native": "^6.1.9",
+    "@react-navigation/native-stack": "^6.9.17",
+    "expo": "~52.0.0",
+    "expo-status-bar": "~2.0.1",
+    "expo-sqlite": "~13.2.1",
+    "react": "18.3.1",
+    "react-native": "0.76.7",
+    "react-native-paper": "^5.12.1",
+    "react-native-safe-area-context": "4.12.0",
+    "react-native-screens": "~4.4.0"
   }
 }

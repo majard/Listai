@@ -23,8 +23,12 @@ export default function HomeScreen() {
   };
 
   useEffect(() => {
-    loadProducts();
-  }, []);
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadProducts();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   const handleDelete = async (id: number) => {
     try {
