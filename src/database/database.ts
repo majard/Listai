@@ -11,6 +11,10 @@ export interface Product {
 export const initDatabase = () => {
   return new Promise((resolve, reject) => {
     try {
+      // Drop the existing table if it exists
+      db.execSync('DROP TABLE IF EXISTS products;');
+      
+      // Create the new table without the weight column
       db.execSync(
         'CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, quantity INTEGER NOT NULL);'
       );
@@ -24,8 +28,10 @@ export const initDatabase = () => {
 export const addProduct = (name: string, quantity: number): Promise<number> => {
   return new Promise((resolve, reject) => {
     try {
+      // Escape single quotes in the name
+      const escapedName = name.replace(/'/g, "''");
       db.execSync(
-        `INSERT INTO products (name, quantity) VALUES ('${name}', ${quantity});`
+        `INSERT INTO products (name, quantity) VALUES ('${escapedName}', ${quantity});`
       );
       const result = db.getFirstSync('SELECT last_insert_rowid() as id;') as { id: number };
       if (result) {

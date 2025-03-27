@@ -6,23 +6,20 @@ import { NativeStackNavigationProp, NativeStackScreenProps } from '@react-naviga
 import { Product, updateProduct } from '../database/database';
 import { RootStackParamList } from '../types/navigation';
 
-type EditProductScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'EditProduct'>;
 type EditProductScreenProps = NativeStackScreenProps<RootStackParamList, 'EditProduct'>;
 
 export default function EditProductScreen() {
   const route = useRoute<EditProductScreenProps['route']>();
   const { product } = route.params;
   const [quantity, setQuantity] = useState(product.quantity.toString());
-  const [weight, setWeight] = useState(product.weight.toString());
-  const navigation = useNavigation<EditProductScreenNavigationProp>();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'EditProduct'>>();
   const theme = useTheme();
 
   const handleUpdate = async () => {
     try {
       await updateProduct(
         product.id,
-        parseInt(quantity, 10),
-        parseInt(weight, 10)
+        parseInt(quantity, 10)
       );
       navigation.goBack();
     } catch (error) {
@@ -34,13 +31,6 @@ export default function EditProductScreen() {
     const numValue = parseInt(value, 10);
     if (!isNaN(numValue) && numValue >= 0) {
       setQuantity(value);
-    }
-  };
-
-  const handleWeightChange = (value: string) => {
-    const numValue = parseInt(value, 10);
-    if (!isNaN(numValue) && numValue >= 0) {
-      setWeight(value);
     }
   };
 
@@ -57,19 +47,11 @@ export default function EditProductScreen() {
         style={styles.input}
         mode="outlined"
       />
-      <PaperTextInput
-        label="Peso (g)"
-        value={weight}
-        onChangeText={handleWeightChange}
-        keyboardType="numeric"
-        style={styles.input}
-        mode="outlined"
-      />
       <Button
         mode="contained"
         onPress={handleUpdate}
         style={styles.button}
-        disabled={!quantity || !weight}
+        disabled={!quantity}
       >
         Salvar Alterações
       </Button>
@@ -85,7 +67,6 @@ const styles = StyleSheet.create({
   },
   title: {
     marginBottom: 24,
-    textAlign: 'center',
   },
   input: {
     marginBottom: 16,
