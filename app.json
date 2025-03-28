@@ -21,6 +21,12 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
+      },
+      "package": "com.mahjard.listai"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "5fe2d67d-c3bb-4de5-b8df-bb346fd96bcc"
       }
     }
   }

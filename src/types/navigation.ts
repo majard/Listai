@@ -1,7 +1,7 @@
 import { Product } from '../database/database';
 
 export type RootStackParamList = {
-  Home: { shouldRefresh?: boolean };
+  Home: undefined;
   AddProduct: undefined;
   EditProduct: { product: Product };
 };

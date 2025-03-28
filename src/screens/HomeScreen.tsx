@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, FlatList, StyleSheet, Clipboard } from 'react-native';
-import { FAB, Card, Text, IconButton, useTheme, Button, TextInput } from 'react-native-paper';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { FAB, Card, Text, IconButton, useTheme, TextInput, Button } from 'react-native-paper';
+import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Product, getProducts, deleteProduct, updateProduct } from '../database/database';
 import { RootStackParamList } from '../types/navigation';
@@ -28,7 +28,6 @@ const getEmojiForProduct = (name: string): string => {
 export default function HomeScreen() {
   const [products, setProducts] = useState<Product[]>([]);
   const navigation = useNavigation<HomeScreenNavigationProp>();
-  const route = useRoute();
   const theme = useTheme();
 
   const loadProducts = async () => {
@@ -44,19 +43,6 @@ export default function HomeScreen() {
     loadProducts();
   }, []);
 
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      const params = route.params as { shouldRefresh?: boolean };
-      if (params?.shouldRefresh) {
-        loadProducts();
-        // Reset the refresh flag
-        navigation.setParams({ shouldRefresh: false });
-      }
-    });
-
-    return unsubscribe;
-  }, [navigation, route.params]);
-
   const handleDelete = async (id: number) => {
     try {
       await deleteProduct(id);
@@ -66,23 +52,30 @@ export default function HomeScreen() {
     }
   };
 
-  const handleQuantityChange = async (id: number, currentQuantity: number, increment: boolean) => {
-    try {
-      const newQuantity = increment ? currentQuantity + 1 : Math.max(0, currentQuantity - 1);
-      await updateProduct(id, newQuantity);
-      loadProducts();
-    } catch (error) {
-      console.error('Erro ao atualizar quantidade:', error);
-    }
-  };
-
   const handleQuantityInput = async (id: number, value: string) => {
     try {
+      // Handle empty input
+      if (value === '') {
+        await updateProduct(id, 0);
+        loadProducts();
+        return;
+      }
+
       const newQuantity = parseInt(value, 10);
       if (!isNaN(newQuantity) && newQuantity >= 0) {
         await updateProduct(id, newQuantity);
         loadProducts();
       }
+    } catch (error) {
+      console.error('Erro ao atualizar quantidade:', error);
+    }
+  };
+
+  const handleQuantityChange = async (id: number, currentQuantity: number, increment: boolean) => {
+    try {
+      const newQuantity = increment ? currentQuantity + 1 : Math.max(0, currentQuantity - 1);
+      await updateProduct(id, newQuantity);
+      loadProducts();
     } catch (error) {
       console.error('Erro ao atualizar quantidade:', error);
     }
@@ -206,9 +199,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 8,
   },
   quantityButtons: {
     flexDirection: 'row',
+  },
+  fab: {
+    position: 'absolute',
+    margin: 16,
+    right: 0,
+    bottom: 0,
   },
   quantityInputContainer: {
     flexDirection: 'row',
@@ -218,11 +218,5 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     marginHorizontal: 8,
-  },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 0,
   },
 }); 
