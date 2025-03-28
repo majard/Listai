@@ -1,12 +1,29 @@
 import React, { useEffect, useState } from 'react';
-import { View, FlatList, StyleSheet } from 'react-native';
-import { FAB, Card, Text, IconButton, useTheme, TextInput } from 'react-native-paper';
+import { View, FlatList, StyleSheet, Clipboard } from 'react-native';
+import { FAB, Card, Text, IconButton, useTheme, TextInput, Button } from 'react-native-paper';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Product, getProducts, deleteProduct, updateProduct } from '../database/database';
 import { RootStackParamList } from '../types/navigation';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
+
+const getEmojiForProduct = (name: string): string => {
+  const nameLower = name.toLowerCase();
+  if (nameLower.includes('batata')) return '🥔';
+  if (nameLower.includes('abóbora')) return '🎃';
+  if (nameLower.includes('brócolis')) return '🥦';
+  if (nameLower.includes('arroz')) return '🍚';
+  if (nameLower.includes('risoto')) return '🍝';
+  if (nameLower.includes('milho')) return '🌽';
+  if (nameLower.includes('picadinho')) return '🍖';
+  if (nameLower.includes('tropical')) return '🌴';
+  if (nameLower.includes('panqueca')) return '🥞';
+  if (nameLower.includes('waffle')) return '🧇';
+  if (nameLower.includes('pão')) return '🍞';
+  if (nameLower.includes('macarrão')) return '🍝';
+  return '🍽️';
+};
 
 export default function HomeScreen() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -78,6 +95,21 @@ export default function HomeScreen() {
     }
   };
 
+  const generateAndCopyStockList = async () => {
+    const today = new Date();
+    const dateStr = today.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    
+    let text = `Boa noite! 🌃 ${dateStr}\n\n`;
+    text += 'Aqui está a lista de produção do dia:\n\n';
+    
+    products.forEach(product => {
+      const emoji = getEmojiForProduct(product.name);
+      text += `- ${product.name}: ${product.quantity} ${emoji}\n`;
+    });
+
+    await Clipboard.setString(text);
+  };
+
   const renderItem = ({ item }: { item: Product }) => (
     <Card style={styles.card}>
       <Card.Content>
@@ -123,6 +155,16 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.header}>
+        <Button
+          mode="contained"
+          onPress={generateAndCopyStockList}
+          style={styles.copyButton}
+          icon="content-copy"
+        >
+          Copiar Lista
+        </Button>
+      </View>
       <FlatList
         data={products}
         renderItem={renderItem}
@@ -143,6 +185,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  header: {
+    padding: 16,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  copyButton: {
+    marginBottom: 8,
   },
   list: {
     padding: 16,
