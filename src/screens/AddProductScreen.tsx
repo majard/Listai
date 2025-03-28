@@ -11,7 +11,6 @@ type AddProductScreenNavigationProp = NativeStackNavigationProp<RootStackParamLi
 export default function AddProductScreen() {
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState('0');
-  const [weight, setWeight] = useState('0');
   const navigation = useNavigation<AddProductScreenNavigationProp>();
   const theme = useTheme();
 
@@ -19,10 +18,9 @@ export default function AddProductScreen() {
     try {
       await addProduct(
         name,
-        parseInt(quantity, 10),
-        parseInt(weight, 10)
+        parseInt(quantity, 10)
       );
-      navigation.goBack();
+      navigation.navigate('Home', { shouldRefresh: true });
     } catch (error) {
       console.error('Erro ao adicionar produto:', error);
     }
@@ -45,19 +43,11 @@ export default function AddProductScreen() {
         style={styles.input}
         mode="outlined"
       />
-      <PaperTextInput
-        label="Peso (g)"
-        value={weight}
-        onChangeText={setWeight}
-        keyboardType="numeric"
-        style={styles.input}
-        mode="outlined"
-      />
       <Button
         mode="contained"
         onPress={handleSubmit}
         style={styles.button}
-        disabled={!name || !quantity || !weight}
+        disabled={!name || !quantity}
       >
         Adicionar Produto
       </Button>
