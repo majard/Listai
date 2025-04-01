@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, StyleSheet, Clipboard } from 'react-native';
 import { FAB, Card, Text, IconButton, useTheme, TextInput, Button } from 'react-native-paper';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -28,6 +28,9 @@ const getEmojiForProduct = (name: string): string => {
 
 export default function HomeScreen() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [isAdjusting, setIsAdjusting] = useState(false);
+  const [adjustmentId, setAdjustmentId] = useState<number | null>(null);
+  const [adjustmentIncrement, setAdjustmentIncrement] = useState(false);
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const route = useRoute();
   const theme = useTheme();
@@ -56,6 +59,35 @@ export default function HomeScreen() {
 
     return unsubscribe;
   }, [navigation, route.params]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+
+    if (isAdjusting && adjustmentId !== null) {
+      // Initial delay before starting continuous adjustment
+      const initialTimeout = setTimeout(() => {
+        interval = setInterval(() => {
+          setProducts(prevProducts => 
+            prevProducts.map(product => {
+              if (product.id === adjustmentId) {
+                const newQuantity = adjustmentIncrement 
+                  ? product.quantity + 1 
+                  : Math.max(0, product.quantity - 1);
+                updateProduct(adjustmentId, newQuantity).catch(console.error);
+                return { ...product, quantity: newQuantity };
+              }
+              return product;
+            })
+          );
+        }, 100);
+      }, 300);
+
+      return () => {
+        clearTimeout(initialTimeout);
+        if (interval) clearInterval(interval);
+      };
+    }
+  }, [isAdjusting, adjustmentId, adjustmentIncrement]);
 
   const handleDelete = async (id: number) => {
     try {
@@ -88,10 +120,32 @@ export default function HomeScreen() {
     try {
       const newQuantity = increment ? currentQuantity + 1 : Math.max(0, currentQuantity - 1);
       await updateProduct(id, newQuantity);
-      loadProducts();
+      
+      setProducts(prevProducts => 
+        prevProducts.map(product => 
+          product.id === id 
+            ? { ...product, quantity: newQuantity }
+            : product
+        )
+      );
     } catch (error) {
       console.error('Erro ao atualizar quantidade:', error);
     }
+  };
+
+  const startContinuousAdjustment = (id: number, currentQuantity: number, increment: boolean) => {
+    // Initial adjustment
+    handleQuantityChange(id, currentQuantity, increment);
+    
+    // Start continuous adjustment
+    setAdjustmentId(id);
+    setAdjustmentIncrement(increment);
+    setIsAdjusting(true);
+  };
+
+  const stopContinuousAdjustment = () => {
+    setIsAdjusting(false);
+    setAdjustmentId(null);
   };
 
   const generateAndCopyStockList = async () => {
@@ -190,11 +244,15 @@ export default function HomeScreen() {
                   icon="minus"
                   size={20}
                   onPress={() => handleQuantityChange(item.id, item.quantity, false)}
+                  onLongPress={() => startContinuousAdjustment(item.id, item.quantity, false)}
+                  onPressOut={stopContinuousAdjustment}
                 />
                 <IconButton
                   icon="plus"
                   size={20}
                   onPress={() => handleQuantityChange(item.id, item.quantity, true)}
+                  onLongPress={() => startContinuousAdjustment(item.id, item.quantity, true)}
+                  onPressOut={stopContinuousAdjustment}
                 />
               </View>
             </View>
