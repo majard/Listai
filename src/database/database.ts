@@ -6,7 +6,6 @@ export interface Product {
   id: number;
   name: string;
   quantity: number;
-  lastUpdated?: string;
 }
 
 export interface QuantityHistory {
@@ -21,7 +20,7 @@ export const initDatabase = () => {
     try {
       // Create products table
       db.execSync(
-        'CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, quantity INTEGER NOT NULL, lastUpdated TEXT);'
+        'CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, quantity INTEGER NOT NULL);'
       );
       
       // Create quantity history table
@@ -84,7 +83,7 @@ export const getProductHistory = (productId: number): Promise<QuantityHistory[]>
 export const updateProduct = (id: number, quantity: number): Promise<void> => {
   return new Promise((resolve, reject) => {
     try {
-      // Only update the quantity, don't update lastUpdated or history
+      // Only update the quantity, don't update history
       db.execSync(
         `UPDATE products SET quantity = ${quantity} WHERE id = ${id};`
       );
@@ -103,9 +102,6 @@ export const saveProductHistory = async (): Promise<void> => {
       
       // Update lastUpdated for all products
       products.forEach(product => {
-        db.execSync(
-          `UPDATE products SET lastUpdated = '${date}' WHERE id = ${product.id};`
-        );
         
         // Add current quantities to history
         db.execSync(

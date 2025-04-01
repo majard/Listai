@@ -54,9 +54,15 @@ export default function EditProductScreen() {
   };
 
   const chartData = {
-    labels: history.slice(-7).map(h => formatDate(h.date)),
+    labels: [...history]
+      .reverse()
+      .slice(-7)
+      .map(h => formatDate(h.date)),
     datasets: [{
-      data: history.slice(-7).map(h => h.quantity)
+      data: [...history]
+        .reverse()
+        .slice(-7)
+        .map(h => h.quantity)
     }]
   };
 
