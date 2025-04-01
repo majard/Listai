@@ -1,26 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <!-- Background -->
-    <rect width="1024" height="1024" fill="#4CAF50"/>
+    <!-- Background circle -->
+    <circle cx="512" cy="512" r="512" fill="#4CAF50"/>
     
-    <!-- Paper -->
-    <g transform="translate(362, 362)">
-        <rect width="300" height="300" rx="16" fill="white" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.1))"/>
-        <!-- Document Lines -->
-        <rect x="40" y="80" width="220" height="16" rx="8" fill="#E0E0E0"/>
-        <rect x="40" y="120" width="180" height="16" rx="8" fill="#E0E0E0"/>
-        <rect x="40" y="160" width="200" height="16" rx="8" fill="#E0E0E0"/>
-    </g>
-
-    <!-- Pencil -->
-    <g transform="translate(512, 512) rotate(-45)">
-        <!-- Pencil Body -->
-        <rect x="20" y="-20" width="120" height="40" rx="4" fill="#FF9800"/>
-        <!-- Pencil Tip -->
-        <path d="M20 -20 L0 0 L20 20" fill="#424242"/>
-        <!-- Eraser -->
-        <rect x="140" y="-20" width="30" height="40" rx="4" fill="#F44336"/>
-        <!-- Metal Band -->
-        <rect x="120" y="-20" width="20" height="40" fill="#9E9E9E"/>
-    </g>
+    <!-- List items -->
+    <rect x="256" y="256" width="512" height="64" rx="32" fill="white"/>
+    <rect x="256" y="384" width="512" height="64" rx="32" fill="white"/>
+    <rect x="256" y="512" width="512" height="64" rx="32" fill="white"/>
+    
+    <!-- Bullet points -->
+    <circle cx="192" cy="288" r="24" fill="white"/>
+    <circle cx="192" cy="416" r="24" fill="white"/>
+    <circle cx="192" cy="544" r="24" fill="white"/>
 </svg> 

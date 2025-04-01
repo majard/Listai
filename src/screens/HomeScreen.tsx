@@ -3,7 +3,7 @@ import { View, FlatList, StyleSheet, Clipboard } from 'react-native';
 import { FAB, Card, Text, IconButton, useTheme, TextInput, Button } from 'react-native-paper';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Product, getProducts, deleteProduct, updateProduct } from '../database/database';
+import { Product, getProducts, deleteProduct, updateProduct, saveProductHistory } from '../database/database';
 import { RootStackParamList } from '../types/navigation';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -96,18 +96,25 @@ export default function HomeScreen() {
   };
 
   const generateAndCopyStockList = async () => {
-    const today = new Date();
-    const dateStr = today.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-    
-    let text = `Boa noite! 🌃 ${dateStr}\n\n`;
-    text += 'Aqui está a lista de produção do dia:\n\n';
-    
-    products.forEach(product => {
-      const emoji = getEmojiForProduct(product.name);
-      text += `- ${product.name}: ${product.quantity} ${emoji}\n`;
-    });
+    try {
+      // First save the current state to history
+      await saveProductHistory();
+      
+      const today = new Date();
+      const dateStr = today.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+      
+      let text = `Boa noite! 🌃 ${dateStr}\n\n`;
+      text += 'Aqui está a lista de produção do dia:\n\n';
+      
+      products.forEach(product => {
+        const emoji = getEmojiForProduct(product.name);
+        text += `- ${product.name}: ${product.quantity} ${emoji}\n`;
+      });
 
-    await Clipboard.setString(text);
+      await Clipboard.setString(text);
+    } catch (error) {
+      console.error('Erro ao salvar histórico e copiar lista:', error);
+    }
   };
 
   const renderItem = ({ item }: { item: Product }) => (
@@ -115,12 +122,20 @@ export default function HomeScreen() {
       <Card.Content>
         <View style={styles.cardHeader}>
           <Text variant="titleMedium">{item.name}</Text>
-          <IconButton
-            icon="delete"
-            size={20}
-            onPress={() => handleDelete(item.id)}
-            iconColor={theme.colors.error}
-          />
+          <View style={styles.cardActions}>
+            <IconButton
+              icon="pencil"
+              size={20}
+              onPress={() => navigation.navigate('EditProduct', { product: item })}
+              iconColor={theme.colors.primary}
+            />
+            <IconButton
+              icon="delete"
+              size={20}
+              onPress={() => handleDelete(item.id)}
+              iconColor={theme.colors.error}
+            />
+          </View>
         </View>
         <View style={styles.cardContent}>
           <View style={styles.quantityContainer}>
@@ -232,5 +247,8 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     marginHorizontal: 8,
+  },
+  cardActions: {
+    flexDirection: 'row',
   },
 }); 
