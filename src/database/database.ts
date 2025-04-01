@@ -6,6 +6,7 @@ export interface Product {
   id: number;
   name: string;
   quantity: number;
+  order: number;
 }
 
 export interface QuantityHistory {
@@ -18,9 +19,9 @@ export interface QuantityHistory {
 export const initDatabase = () => {
   return new Promise((resolve, reject) => {
     try {
-      // Create products table
+      // Create products table with order column
       db.execSync(
-        'CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, quantity INTEGER NOT NULL);'
+        'CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, quantity INTEGER NOT NULL, `order` INTEGER NOT NULL DEFAULT 0);'
       );
       
       // Create quantity history table
@@ -59,7 +60,7 @@ export const addProduct = (name: string, quantity: number): Promise<number> => {
 export const getProducts = (): Promise<Product[]> => {
   return new Promise((resolve, reject) => {
     try {
-      const result = db.getAllSync('SELECT * FROM products;');
+      const result = db.getAllSync('SELECT * FROM products ORDER BY `order` ASC;');
       resolve(result as Product[]);
     } catch (error) {
       reject(error);
@@ -123,6 +124,26 @@ export const deleteProduct = (id: number): Promise<void> => {
       db.execSync(`DELETE FROM products WHERE id = ${id};`);
       resolve();
     } catch (error) {
+      reject(error);
+    }
+  });
+};
+
+export const updateProductOrder = (updates: { id: number; order: number }[]): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    try {
+      db.execSync('BEGIN TRANSACTION;');
+      
+      updates.forEach(({ id, order }) => {
+        db.execSync(
+          `UPDATE products SET \`order\` = ${order} WHERE id = ${id};`
+        );
+      });
+      
+      db.execSync('COMMIT;');
+      resolve();
+    } catch (error) {
+      db.execSync('ROLLBACK;');
       reject(error);
     }
   });

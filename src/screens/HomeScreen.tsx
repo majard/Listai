@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, FlatList, StyleSheet, Clipboard } from 'react-native';
+import { View, StyleSheet, Clipboard } from 'react-native';
 import { FAB, Card, Text, IconButton, useTheme, TextInput, Button } from 'react-native-paper';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Product, getProducts, deleteProduct, updateProduct, saveProductHistory } from '../database/database';
+import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
+import { Product, getProducts, deleteProduct, updateProduct, updateProductOrder, saveProductHistory } from '../database/database';
 import { RootStackParamList } from '../types/navigation';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -49,7 +50,6 @@ export default function HomeScreen() {
       const params = route.params as { shouldRefresh?: boolean };
       if (params?.shouldRefresh) {
         loadProducts();
-        // Reset the refresh flag
         navigation.setParams({ shouldRefresh: false });
       }
     });
@@ -68,7 +68,6 @@ export default function HomeScreen() {
 
   const handleQuantityInput = async (id: number, value: string) => {
     try {
-      // Handle empty input
       if (value === '') {
         await updateProduct(id, 0);
         loadProducts();
@@ -97,7 +96,6 @@ export default function HomeScreen() {
 
   const generateAndCopyStockList = async () => {
     try {
-      // First save the current state to history
       await saveProductHistory();
       
       const today = new Date();
@@ -117,55 +115,93 @@ export default function HomeScreen() {
     }
   };
 
-  const renderItem = ({ item }: { item: Product }) => (
-    <Card style={styles.card}>
-      <Card.Content>
-        <View style={styles.cardHeader}>
-          <Text variant="titleMedium">{item.name}</Text>
-          <View style={styles.cardActions}>
-            <IconButton
-              icon="pencil"
-              size={20}
-              onPress={() => navigation.navigate('EditProduct', { product: item })}
-              iconColor={theme.colors.primary}
-            />
-            <IconButton
-              icon="delete"
-              size={20}
-              onPress={() => handleDelete(item.id)}
-              iconColor={theme.colors.error}
-            />
-          </View>
-        </View>
-        <View style={styles.cardContent}>
-          <View style={styles.quantityContainer}>
-            <View style={styles.quantityInputContainer}>
-              <Text variant="bodyMedium">Quantidade: </Text>
-              <TextInput
-                value={item.quantity.toString()}
-                onChangeText={(value) => handleQuantityInput(item.id, value)}
-                keyboardType="numeric"
-                style={styles.input}
-                mode="outlined"
-                dense
+  const handleDragEnd = async ({ data }: { data: Product[] }) => {
+    try {
+      // Update local state immediately
+      setProducts(data);
+      
+      // Update database
+      const updates = data.map((product, index) => ({
+        id: product.id,
+        order: index
+      }));
+      
+      await updateProductOrder(updates);
+    } catch (error) {
+      console.error('Erro ao reordenar produtos:', error);
+      // Reload original order if there's an error
+      loadProducts();
+    }
+  };
+
+  const renderItem = ({ item, drag, isActive }: { 
+    item: Product; 
+    drag: () => void; 
+    isActive: boolean;
+  }) => (
+    <ScaleDecorator>
+      <Card 
+        style={[
+          styles.card,
+          { opacity: isActive ? 0.5 : 1 }
+        ]}
+      >
+        <Card.Content>
+          <View style={styles.cardHeader}>
+            <View style={styles.dragHandle}>
+              <IconButton
+                icon="drag"
+                size={20}
+                onLongPress={drag}
+                iconColor={theme.colors.primary}
+              />
+              <Text variant="titleMedium">{item.name}</Text>
+            </View>
+            <View style={styles.cardActions}>
+              <IconButton
+                icon="pencil"
+                size={20}
+                onPress={() => navigation.navigate('EditProduct', { product: item })}
+                iconColor={theme.colors.primary}
+              />
+              <IconButton
+                icon="delete"
+                size={20}
+                onPress={() => handleDelete(item.id)}
+                iconColor={theme.colors.error}
               />
             </View>
-            <View style={styles.quantityButtons}>
-              <IconButton
-                icon="minus"
-                size={20}
-                onPress={() => handleQuantityChange(item.id, item.quantity, false)}
-              />
-              <IconButton
-                icon="plus"
-                size={20}
-                onPress={() => handleQuantityChange(item.id, item.quantity, true)}
-              />
+          </View>
+          <View style={styles.cardContent}>
+            <View style={styles.quantityContainer}>
+              <View style={styles.quantityInputContainer}>
+                <Text variant="bodyMedium">Quantidade: </Text>
+                <TextInput
+                  value={item.quantity.toString()}
+                  onChangeText={(value) => handleQuantityInput(item.id, value)}
+                  keyboardType="numeric"
+                  style={styles.input}
+                  mode="outlined"
+                  dense
+                />
+              </View>
+              <View style={styles.quantityButtons}>
+                <IconButton
+                  icon="minus"
+                  size={20}
+                  onPress={() => handleQuantityChange(item.id, item.quantity, false)}
+                />
+                <IconButton
+                  icon="plus"
+                  size={20}
+                  onPress={() => handleQuantityChange(item.id, item.quantity, true)}
+                />
+              </View>
             </View>
           </View>
-        </View>
-      </Card.Content>
-    </Card>
+        </Card.Content>
+      </Card>
+    </ScaleDecorator>
   );
 
   return (
@@ -177,13 +213,14 @@ export default function HomeScreen() {
           style={styles.copyButton}
           icon="content-copy"
         >
-          Copiar Lista
+          Salvar e copiar relatório
         </Button>
       </View>
-      <FlatList
+      <DraggableFlatList
         data={products}
-        renderItem={renderItem}
+        onDragEnd={handleDragEnd}
         keyExtractor={(item) => item.id.toString()}
+        renderItem={renderItem}
         contentContainerStyle={styles.list}
       />
       <FAB
@@ -221,6 +258,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  dragHandle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   cardContent: {
     marginTop: 8,
   },
@@ -251,4 +292,4 @@ const styles = StyleSheet.create({
   cardActions: {
     flexDirection: 'row',
   },
-}); 
+});
