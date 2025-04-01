@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background -->
+    <rect width="1024" height="1024" fill="#4CAF50"/>
+    
+    <!-- Safe zone for adaptive icon -->
+    <g transform="translate(256, 256) scale(0.5)">
+        <!-- Paper -->
+        <rect width="600" height="600" rx="32" fill="white" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.1))"/>
+        <!-- Document Lines -->
+        <rect x="80" y="160" width="440" height="32" rx="16" fill="#E0E0E0"/>
+        <rect x="80" y="240" width="360" height="32" rx="16" fill="#E0E0E0"/>
+        <rect x="80" y="320" width="400" height="32" rx="16" fill="#E0E0E0"/>
+
+        <!-- Pencil -->
+        <g transform="translate(300, 300) rotate(-45)">
+            <!-- Pencil Body -->
+            <rect x="40" y="-40" width="240" height="80" rx="8" fill="#FF9800"/>
+            <!-- Pencil Tip -->
+            <path d="M40 -40 L0 0 L40 40" fill="#424242"/>
+            <!-- Eraser -->
+            <rect x="280" y="-40" width="60" height="80" rx="8" fill="#F44336"/>
+            <!-- Metal Band -->
+            <rect x="240" y="-40" width="40" height="80" fill="#9E9E9E"/>
+        </g>
+    </g>
+</svg> 
