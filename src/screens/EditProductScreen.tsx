@@ -43,7 +43,15 @@ export default function EditProductScreen() {
     }
   };
 
-  const formatDate = (dateString: string) => {
+  const formatChartLabel = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR', { 
+      day: '2-digit',
+      month: '2-digit'
+    });
+  };
+
+  const formatHistoryDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR', { 
       day: '2-digit',
@@ -57,7 +65,7 @@ export default function EditProductScreen() {
     labels: [...history]
       .reverse()
       .slice(-7)
-      .map(h => formatDate(h.date)),
+      .map(h => formatChartLabel(h.date)),
     datasets: [{
       data: [...history]
         .reverse()
@@ -124,7 +132,7 @@ export default function EditProductScreen() {
                 {history.map((item, index) => (
                   <View key={item.id} style={styles.historyItem}>
                     <Text variant="bodyMedium">
-                      {formatDate(item.date)}
+                      {formatHistoryDate(item.date)}
                     </Text>
                     <Text variant="bodyMedium">
                       Quantidade: {item.quantity}
@@ -169,6 +177,7 @@ const styles = StyleSheet.create({
   },
   historyList: {
     marginTop: 16,
+    paddingBottom: 64,
   },
   historyItem: {
     flexDirection: 'row',
