@@ -206,16 +206,13 @@ export default function HomeScreen() {
           { opacity: isActive ? 0.5 : 1 }
         ]}
       >
-        <Pressable onPress={() => navigation.navigate('EditProduct', { product: item })}>
+        <Pressable 
+          onPress={() => navigation.navigate('EditProduct', { product: item })}
+          onLongPress={drag}
+        >
           <Card.Content>
             <View style={styles.cardHeader}>
               <View style={styles.dragHandle}>
-                <IconButton
-                  icon="drag"
-                  size={20}
-                  onLongPress={drag}
-                  iconColor={theme.colors.primary}
-                />
                 <Text variant="titleMedium">{item.name}</Text>
               </View>
               <View style={styles.cardActions}>
