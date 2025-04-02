@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, StyleSheet, Clipboard } from 'react-native';
+import { View, StyleSheet, Clipboard, Pressable } from 'react-native';
 import { FAB, Card, Text, IconButton, useTheme, TextInput, Button } from 'react-native-paper';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -43,7 +43,7 @@ export default function HomeScreen() {
         setProducts(loadedProducts);
       }
     } catch (error) {
-      console.error('Error loading products:', error);
+      console.error('Erro ao carregar produtos:', error);
     }
   };
 
@@ -180,14 +180,16 @@ export default function HomeScreen() {
       // Update local state immediately
       setProducts(data);
       
-      // Update order in database
-      await updateProductOrder(data.map((product, index) => ({
+      // Update database
+      const updates = data.map((product, index) => ({
         id: product.id,
         order: index
-      })));
+      }));
+      
+      await updateProductOrder(updates);
     } catch (error) {
-      console.error('Error updating product order:', error);
-      // Reload products to ensure consistency
+      console.error('Erro ao reordenar produtos:', error);
+      // Reload original order if there's an error
       loadProducts();
     }
   };
@@ -196,10 +198,15 @@ export default function HomeScreen() {
     item: Product; 
     drag: () => void; 
     isActive: boolean;
-  }) => {
-    return (
-      <ScaleDecorator>
-        <Card style={[styles.card, isActive && { backgroundColor: theme.colors.surfaceVariant }]}>
+  }) => (
+    <ScaleDecorator>
+      <Card 
+        style={[
+          styles.card,
+          { opacity: isActive ? 0.5 : 1 }
+        ]}
+      >
+        <Pressable onPress={() => navigation.navigate('EditProduct', { product: item })}>
           <Card.Content>
             <View style={styles.cardHeader}>
               <View style={styles.dragHandle}>
@@ -229,36 +236,39 @@ export default function HomeScreen() {
             <View style={styles.cardContent}>
               <View style={styles.quantityContainer}>
                 <View style={styles.quantityInputContainer}>
+                  <Text variant="bodyMedium">Quantidade: </Text>
+                  <TextInput
+                    value={item.quantity.toString()}
+                    onChangeText={(value) => handleQuantityInput(item.id, value)}
+                    keyboardType="numeric"
+                    style={styles.input}
+                    mode="outlined"
+                    dense
+                  />
+                </View>
+                <View style={styles.quantityButtons}>
                   <IconButton
                     icon="minus"
                     size={20}
-                    onPress={() => handleQuantityChange(item.id, item.quantity - 1, false)}
-                    iconColor={theme.colors.primary}
-                  />
-                  <TextInput
-                    mode="outlined"
-                    value={item.quantity.toString()}
-                    onChangeText={(text) => {
-                      const newQuantity = parseInt(text) || 0;
-                      handleQuantityChange(item.id, newQuantity, false);
-                    }}
-                    keyboardType="numeric"
-                    style={styles.input}
+                    onPress={() => handleQuantityChange(item.id, item.quantity, false)}
+                    onLongPress={() => startContinuousAdjustment(item.id, item.quantity, false)}
+                    onPressOut={stopContinuousAdjustment}
                   />
                   <IconButton
                     icon="plus"
                     size={20}
-                    onPress={() => handleQuantityChange(item.id, item.quantity + 1, true)}
-                    iconColor={theme.colors.primary}
+                    onPress={() => handleQuantityChange(item.id, item.quantity, true)}
+                    onLongPress={() => startContinuousAdjustment(item.id, item.quantity, true)}
+                    onPressOut={stopContinuousAdjustment}
                   />
                 </View>
               </View>
             </View>
           </Card.Content>
-        </Card>
-      </ScaleDecorator>
-    );
-  };
+        </Pressable>
+      </Card>
+    </ScaleDecorator>
+  );
 
   return (
     <View style={styles.container}>
@@ -278,7 +288,6 @@ export default function HomeScreen() {
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
-        activationDistance={20}
       />
       <FAB
         icon="plus"
