@@ -42,71 +42,87 @@ type EditProductScreenProps = NativeStackScreenProps<
 
 export default function EditProductScreen() {
   const route = useRoute<EditProductScreenProps["route"]>();
-  const { product } = route.params;
-  const [quantity, setQuantity] = useState(product.quantity.toString());
+  const product = route.params?.product;
+  const [quantity, setQuantity] = useState(product?.quantity?.toString() || "");
   const [history, setHistory] = useState<QuantityHistory[]>([]);
   const navigation = useNavigation<EditProductScreenNavigationProp>();
   const theme = useTheme();
-  const [name, setName] = useState(product.name);
+  const [name, setName] = useState(product?.name || "");
   const [isEditingName, setIsEditingName] = useState(false);
 
+  console.log("Product:", product);
+
   useEffect(() => {
-    loadHistory();
-  }, []);
+    if (product) {
+      setQuantity(product.quantity.toString());
+      setName(product.name);
+      loadHistory();
+    }
+  }, [product]);
 
   const loadHistory = async () => {
-    try {
-      const data = await getProductHistory(product.id);
-      setHistory(data);
-    } catch (error) {
-      console.error("Erro ao carregar histórico:", error);
+    if (product?.name) { // Ensure product and id exist before calling
+      try {
+        console.log("Loading history for product:", product.name);
+        const data = await getProductHistory(product.name.toString());
+        console.log("History loaded:", data);
+        setHistory(data || []); 
+      } catch (error) {
+        console.error("Erro ao carregar histórico:", error);
+      }
     }
   };
 
   const handleUpdate = async () => {
-    try {
-      await updateProduct(product.id, parseInt(quantity, 10));
-      navigation.navigate("Home", { shouldRefresh: true });
-    } catch (error) {
-      console.error("Erro ao atualizar produto:", error);
+    if (product?.id) {
+      try {
+        await updateProduct(product.id, parseInt(quantity, 10));
+        navigation.navigate("Home", { shouldRefresh: true });
+      } catch (error) {
+        console.error("Erro ao atualizar produto:", error);
+      }
     }
   };
 
   const handleNameUpdate = async () => {
-    try {
-      await updateProductName(product.id, name);
-      setIsEditingName(false);
-      navigation.setParams({ product: { ...product, name } });
-    } catch (error) {
-      console.error("Erro ao atualizar nome do produto:", error);
+    if (product?.id) {
+      try {
+        console.log("Updating name:", name, product.id);
+        await updateProductName(product.id, name);
+        setIsEditingName(false);
+        navigation.setParams({ product: { ...product, name } });
+      } catch (error) {
+        console.error("Erro ao atualizar nome do produto:", error);
+      }
     }
   };
 
   const handleDelete = async () => {
-    Alert.alert(
-      "Confirmar Exclusão",
-      "Tem certeza que deseja excluir este produto?",
-      [
-        {
-          text: "Cancelar",
-          style: "cancel",
-        },
-        {
-          text: "Excluir",
-          onPress: async () => {
-            try {
-              await deleteProduct(product.id);
-              navigation.navigate("Home", { shouldRefresh: true });
-            } catch (error) {
-              console.error("Erro ao deletar produto:", error);
-            }
+    if (product?.id) {
+      Alert.alert(
+        "Confirmar Exclusão",
+        "Tem certeza que deseja excluir este produto?",
+        [
+          {
+            text: "Cancelar",
+            style: "cancel",
           },
-        },
-      ],
-      { cancelable: true }
-    );
+          {
+            text: "Excluir",
+            onPress: async () => {
+              try {
+                await deleteProduct(product.id);
+                navigation.navigate("Home", { shouldRefresh: true });
+              } catch (error) {
+                console.error("Erro ao deletar produto:", error);
+              }
+            },
+          },
+        ],
+        { cancelable: true }
+      );
+    }
   };
-
 
   const formatChartLabel = (dateString: string) => {
     const date = new Date(dateString);
@@ -142,7 +158,7 @@ export default function EditProductScreen() {
   };
 
   return (
-    <SafeAreaView style={{flex: 1}}>
+    <SafeAreaView style={{ flex: 1 }}>
       <ScrollView style={styles.container}>
         <View style={styles.header}>
           {isEditingName ? (
@@ -163,7 +179,7 @@ export default function EditProductScreen() {
                 icon="close"
                 size={24}
                 onPress={() => {
-                  setName(product.name);
+                  setName(product?.name || "");
                   setIsEditingName(false);
                 }}
                 iconColor={theme.colors.error}
@@ -172,7 +188,7 @@ export default function EditProductScreen() {
           ) : (
             <View style={styles.nameContainer}>
               <Text variant="titleLarge" style={styles.title}>
-                {product.name}
+                {product?.name}
               </Text>
               <IconButton
                 icon="pencil"

@@ -1,12 +1,20 @@
-import React, { useEffect, useState, useRef } from "react";
-import { View, StyleSheet, Clipboard, Pressable, Alert } from "react-native";
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  StyleSheet,
+  Clipboard,
+  Pressable,
+  Alert,
+  TextInput,
+  Modal,
+  TextInput as RNTextInput,
+} from "react-native";
 import {
   FAB,
   Card,
   Text,
   IconButton,
   useTheme,
-  TextInput,
   Button,
   Menu,
   Divider,
@@ -23,9 +31,10 @@ import {
   updateProduct,
   updateProductOrder,
   saveProductHistory,
+  getProductHistory,
+  createProduct,
 } from "../database/database";
 import { RootStackParamList } from "../types/navigation";
-import { log } from "console";
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -59,31 +68,31 @@ export default function HomeScreen() {
   const theme = useTheme();
   const [isMounted, setIsMounted] = useState(true);
   const [sortOrder, setSortOrder] = useState<
-    "custom" | "alphabetical" | "quantity"
+    "custom" | "alphabetical" | "quantityAsc" | "quantityDesc"
   >("custom");
   const [menuVisible, setMenuVisible] = useState(false);
-  
+  const [isImportModalVisible, setIsImportModalVisible] = useState(false);
+  const [importText, setImportText] = useState("");
 
   const openMenu = () => setMenuVisible(true);
   const closeMenu = () => setMenuVisible(false);
 
   const sortProducts = (productsToSort: Product[]) => {
     let sortedProducts = [...productsToSort];
-
-
     switch (sortOrder) {
       case "alphabetical":
         sortedProducts.sort((a, b) => a.name.localeCompare(b.name));
         break;
-      case "quantity":
-        sortedProducts.sort((a, b) => a.quantity - b.quantity); // Ascending order
+      case "quantityAsc":
+        sortedProducts.sort((a, b) => a.quantity - b.quantity);
         break;
-      case "custom":
+      case "quantityDesc":
+        sortedProducts.sort((a, b) => b.quantity - a.quantity);
+        break;
       default:
         sortedProducts.sort((a, b) => a.order - b.order);
         break;
     }
-
     return sortedProducts;
   };
 
@@ -98,26 +107,42 @@ export default function HomeScreen() {
     }
   };
 
+  const handleImportButtonClick = () => {
+    setIsImportModalVisible(true);
+  };
+
+  const handleImportModalImport = () => {
+    importStockList(importText);
+    setIsImportModalVisible(false);
+    setImportText("");
+  };
+
+  const handleImportModalCancel = () => {
+    console.log("Cancelando importação");
+    setIsImportModalVisible(false);
+    setImportText("");
+  };
+
   useEffect(() => {
     const loadAndSortProducts = async () => {
-        try {
-            const loadedProducts = await getProducts();
-            if (isMounted) {
-                const sortedProducts = sortProducts(loadedProducts);
-                setProducts([...sortedProducts]);     
-            }
-        } catch (error) {
-            console.error("Erro ao carregar produtos:", error);
+      try {
+        const loadedProducts = await getProducts();
+        if (isMounted) {
+          const sortedProducts = sortProducts(loadedProducts);
+          setProducts([...sortedProducts]);
         }
+      } catch (error) {
+        console.error("Erro ao carregar produtos:", error);
+      }
     };
     loadAndSortProducts();
-}, [sortOrder]);
+  }, [sortOrder]);
 
-useEffect(() => {
+  useEffect(() => {
     return () => {
-        setIsMounted(false);
+      setIsMounted(false);
     };
-}, []);
+  }, []);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener("focus", () => {
@@ -127,15 +152,12 @@ useEffect(() => {
         navigation.setParams({ shouldRefresh: false });
       }
     });
-
     return unsubscribe;
   }, [navigation, route.params]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
-
     if (isAdjusting && adjustmentId !== null) {
-      // Initial delay before starting continuous adjustment
       const initialTimeout = setTimeout(() => {
         interval = setInterval(() => {
           setProducts((prevProducts) =>
@@ -152,7 +174,6 @@ useEffect(() => {
           );
         }, 100);
       }, 300);
-
       return () => {
         clearTimeout(initialTimeout);
         if (interval) clearInterval(interval);
@@ -165,10 +186,7 @@ useEffect(() => {
       "Confirmar Exclusão",
       "Tem certeza que deseja excluir este produto?",
       [
-        {
-          text: "Cancelar",
-          style: "cancel",
-        },
+        { text: "Cancelar", style: "cancel" },
         {
           text: "Excluir",
           style: "destructive",
@@ -181,8 +199,7 @@ useEffect(() => {
             }
           },
         },
-      ],
-      { cancelable: true }
+      ]
     );
   };
 
@@ -193,7 +210,6 @@ useEffect(() => {
         loadProducts();
         return;
       }
-
       const newQuantity = parseInt(value, 10);
       if (!isNaN(newQuantity) && newQuantity >= 0) {
         await updateProduct(id, newQuantity);
@@ -214,7 +230,6 @@ useEffect(() => {
         ? currentQuantity + 1
         : Math.max(0, currentQuantity - 1);
       await updateProduct(id, newQuantity);
-
       setProducts((prevProducts) =>
         prevProducts.map((product) =>
           product.id === id ? { ...product, quantity: newQuantity } : product
@@ -230,10 +245,7 @@ useEffect(() => {
     currentQuantity: number,
     increment: boolean
   ) => {
-    // Initial adjustment
     handleQuantityChange(id, currentQuantity, increment);
-
-    // Start continuous adjustment
     setAdjustmentId(id);
     setAdjustmentIncrement(increment);
     setIsAdjusting(true);
@@ -247,21 +259,17 @@ useEffect(() => {
   const generateAndCopyStockList = async () => {
     try {
       await saveProductHistory();
-
       const today = new Date();
       const dateStr = today.toLocaleDateString("pt-BR", {
         day: "2-digit",
         month: "2-digit",
       });
-
       let text = `Boa noite! 🌃 ${dateStr}\n\n`;
       text += "Aqui está a lista de produção do dia:\n\n";
-
       products.forEach((product) => {
         const emoji = getEmojiForProduct(product.name);
         text += `- ${product.name}: ${product.quantity} ${emoji}\n`;
       });
-
       await Clipboard.setString(text);
     } catch (error) {
       console.error("Erro ao salvar histórico e copiar lista:", error);
@@ -270,20 +278,67 @@ useEffect(() => {
 
   const handleDragEnd = async ({ data }: { data: Product[] }) => {
     try {
-      // Update local state immediately
       setProducts(data);
-
-      // Update database
       const updates = data.map((product, index) => ({
         id: product.id,
         order: index,
       }));
-
       await updateProductOrder(updates);
     } catch (error) {
       console.error("Erro ao reordenar produtos:", error);
-      // Reload original order if there's an error
       loadProducts();
+    }
+  };
+ 
+  const importStockList = async (text: string) => {
+    try {
+      const lines = text.split("\n");
+      const dateRegex = /(\d{2}\/\d{2}\/\d{4})/;
+      let importDate: Date | null = null;
+
+      for (const line of lines) {
+        const dateMatch = line.match(dateRegex);
+        if (dateMatch) {
+          const [day, month, year] = dateMatch[1].split("/").map(Number);
+          importDate = new Date(year, month - 1, day);
+          break;
+        }
+      }
+
+      const productRegex = /- (.+): (\d+) /;
+      for (const line of lines) {
+        const productMatch = line.match(productRegex);
+        if (productMatch) {
+          // Trim whitespace from the extracted name
+          const name = productMatch[1].trim();
+          const quantity = parseInt(productMatch[2], 10);
+
+          console.log('Importing:', { name, quantity });
+
+          const productHistory = await getProductHistory(name);
+          if (productHistory && importDate) {
+            const latestHistoryDate = new Date(productHistory.date);
+            if (latestHistoryDate < importDate) {
+              const existingProduct = products.find((p) => p.name === name);
+              if (existingProduct) {
+                await updateProduct(existingProduct.id, quantity);
+              } else {
+                await createProduct(name, quantity);
+              }
+            }
+          } else {
+            const existingProduct = products.find((p) => p.name === name);
+            if (existingProduct) {
+              await updateProduct(existingProduct.id, quantity);
+            } else {
+              await createProduct(name, quantity);
+            }
+          }
+        }
+      }
+      loadProducts();
+    } catch (error) {
+      console.error("Erro ao importar lista:", error);
     }
   };
 
@@ -378,7 +433,7 @@ useEffect(() => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Button
+      <Button
           mode="contained"
           onPress={generateAndCopyStockList}
           style={styles.copyButton}
@@ -386,39 +441,58 @@ useEffect(() => {
         >
           Salvar e copiar relatório
         </Button>
-        <Menu
-          visible={menuVisible}
-          onDismiss={closeMenu}
-          anchor={
-            <Button icon="sort" onPress={openMenu}>
-              Ordenar
-            </Button>
-          }
-        >
-          <Menu.Item
-            onPress={() => {
-              setSortOrder("custom");
-              closeMenu();
-            }}
-            title="Ordem Personalizada"
-          />
-          <Divider />
-          <Menu.Item
-            onPress={() => {
-              setSortOrder("alphabetical");
-              closeMenu();
-            }}
-            title="Alfabética"
-          />
-          <Divider />
-          <Menu.Item
-            onPress={() => {
-              setSortOrder("quantity");
-              closeMenu();
-            }}
-            title="Quantidade"
-          />
-        </Menu>
+
+        <View style={styles.buttonRow}>
+          <Button
+            mode="contained"
+            onPress={handleImportButtonClick}
+            icon="import"
+          >
+            <Text>Importar Lista</Text>{" "}
+            {/* Wrap the text in a <Text> component */}
+          </Button>
+          <Menu
+            visible={menuVisible}
+            onDismiss={closeMenu}
+            anchor={
+              <Button icon="sort" onPress={openMenu}>
+                Ordenar
+              </Button>
+            }
+          >
+            <Menu.Item
+              onPress={() => {
+                setSortOrder("custom");
+                closeMenu();
+              }}
+              title="Ordem Personalizada"
+            />
+            <Divider />
+            <Menu.Item
+              onPress={() => {
+                setSortOrder("alphabetical");
+                closeMenu();
+              }}
+              title="Alfabética"
+            />
+            <Divider />
+            <Menu.Item
+              onPress={() => {
+                setSortOrder("quantityDesc");
+                closeMenu();
+              }}
+              title="Quantidade (Maior Primeiro)"
+            />
+            <Divider />
+            <Menu.Item
+              onPress={() => {
+                setSortOrder("quantityAsc");
+                closeMenu();
+              }}
+              title="Quantidade (Menor Primeiro)"
+            />
+          </Menu>
+        </View>
       </View>
       <DraggableFlatList
         data={products}
@@ -426,7 +500,7 @@ useEffect(() => {
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
-        extraData = {products}
+        extraData={products}
       />
       <FAB
         icon="plus"
@@ -434,68 +508,111 @@ useEffect(() => {
         onPress={() => navigation.navigate("AddProduct")}
         label="Adicionar Produto"
       />
+      <View>
+      <Modal
+        visible={isImportModalVisible}
+        onRequestClose={() => setIsImportModalVisible(false)}
+        transparent={true}
+      >
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>Importar Lista</Text>
+          <RNTextInput
+            style={styles.modalInput}
+            multiline
+            value={importText}
+            onChangeText={setImportText}
+            placeholder="Cole a lista aqui..."
+          />
+          <View style={styles.modalButtons}>
+            <Button
+              onPress={handleImportModalCancel}
+              style={styles.modalButton}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onPress={handleImportModalImport}
+              style={styles.modalButton}
+            >
+              Importar
+            </Button>
+          </View>
+        </View>
+      </Modal>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
-  },
+  container: { flex: 1, backgroundColor: "#f5f5f5" },
   header: {
     padding: 16,
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#e0e0e0",
   },
-  copyButton: {
-    marginBottom: 8,
-  },
-  list: {
-    padding: 16,
-    paddingBottom: 160,
-  },
-  card: {
-    marginBottom: 16,
-  },
+  copyButton: { marginBottom: 8 },
+  list: { padding: 16, paddingBottom: 160 },
+  card: { marginBottom: 16 },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  dragHandle: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  cardContent: {
-    marginTop: 8,
-  },
+  dragHandle: { flexDirection: "row", alignItems: "center" },
+  cardContent: { marginTop: 8 },
   quantityContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 8,
   },
-  quantityButtons: {
-    flexDirection: "row",
-  },
-  fab: {
-    position: "absolute",
-    margin: 16,
-    right: 0,
-    bottom: 0,
-  },
+  quantityButtons: { flexDirection: "row" },
+  fab: { position: "absolute", margin: 16, right: 0, bottom: 0 },
   quantityInputContainer: {
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
   },
-  input: {
-    flex: 1,
-    marginHorizontal: 8,
-  },
-  cardActions: {
+  input: { flex: 1, marginHorizontal: 8 },
+  cardActions: { flexDirection: "row" },
+  buttonRow: {
     flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 8,
+  },
+  modalContainer: {
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 8,
+    width: 300, 
+    height: 600,  
+    margin: 42
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 10,
+    textAlign: "center", // Center the title
+  },
+  modalInput: {
+    height: 150, // Adjust height as needed
+    flexGrow: 1, // Allows it to grow within the maxHeight
+    borderWidth: 1,
+    borderColor: "gray",
+    marginBottom: 10,
+    padding: 10,
+    textAlignVertical: "top",
+  },
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginTop: 10,
+  },
+  modalButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
   },
 });
