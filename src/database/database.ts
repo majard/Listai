@@ -15,26 +15,111 @@ export interface QuantityHistory {
   quantity: number;
   date: string;
 }
+const expectedSchemas = {
+  products: [
+      { name: 'id', type: 'INTEGER PRIMARY KEY AUTOINCREMENT' },
+      { name: 'name', type: 'TEXT NOT NULL' },
+      { name: 'quantity', type: 'INTEGER NOT NULL' },
+      { name: 'order', type: 'INTEGER NOT NULL', default: 0 },
+  ],
+  quantity_history: [
+      { name: 'id', type: 'INTEGER PRIMARY KEY AUTOINCREMENT' },
+      { name: 'productId', type: 'INTEGER NOT NULL' },
+      { name: 'quantity', type: 'INTEGER NOT NULL' },
+      { name: 'date', type: 'TEXT NOT NULL' },
+  ],
+};
+
+const getExistingColumns = (tableName: string): string[] => {
+  try {
+      const result = db.getAllSync(`PRAGMA table_info(${tableName});`) as { name: string }[];
+      return result.map(columnInfo => columnInfo.name);
+  } catch (error) {
+      console.error(`Error getting column info for ${tableName}:`, error);
+      return [];
+  }
+};
+
+const addMissingColumn = (tableName: string, columnName: string, columnType: string, defaultValue: any) => {
+  let defaultValueClause = '';
+  let notNullClause = '';
+
+  if (defaultValue !== undefined) {
+      if (typeof defaultValue === 'string') {
+          defaultValueClause = ` DEFAULT '${defaultValue}'`;
+      } else if (defaultValue !== null) {
+          defaultValueClause = ` DEFAULT ${defaultValue}`;
+      } else {
+          defaultValueClause = ` DEFAULT NULL`;
+      }
+  }
+
+  if(columnType.includes('NOT NULL')){
+      if(defaultValue === null || defaultValue === undefined){
+          if(columnType.includes('INTEGER')){
+              defaultValueClause = ' DEFAULT 0';
+          } else if(columnType.includes('TEXT')){
+              defaultValueClause = " DEFAULT ''";
+          } else {
+              defaultValueClause = ' DEFAULT 0'; //fallback to 0.
+          }
+      }
+  }
+
+  const alterStatement = `ALTER TABLE ${tableName} ADD COLUMN \`${columnName}\` ${columnType.replace('NOT NULL', '')}${defaultValueClause};`;
+  console.log(`Executing: ${alterStatement}`);
+  db.execSync(alterStatement);
+};
+
+const repairDatabaseSchema = (tableName: string) => {
+  const columns = expectedSchemas[tableName];
+
+  // Check if the table exists
+  let tableExists = false;
+  try {
+      db.execSync(`SELECT 1 FROM ${tableName} LIMIT 1;`);
+      tableExists = true;
+  } catch (e: any) {
+      if (e.message.includes('no such table')) {
+          tableExists = false;
+      } else {
+          throw e; // Re-throw any other errors
+      }
+  }
+
+  if (!tableExists) {
+      const createStatement = `CREATE TABLE IF NOT EXISTS ${tableName} (${columns
+          .map(col => `${col.name} ${col.type}`)
+          .join(', ')});`;
+      console.log(`Executing: ${createStatement}`);
+      db.execSync(createStatement);
+  } else {
+      const existingColumns = getExistingColumns(tableName);
+      columns.forEach(expectedColumn => {
+          if (!existingColumns.includes(expectedColumn.name)) {
+              addMissingColumn(tableName, expectedColumn.name, expectedColumn.type, expectedColumn.default);
+          }
+      });
+  }
+};
 
 export const initDatabase = () => {
   return new Promise((resolve, reject) => {
-    try {
-      // Create products table with order column
-      db.execSync(
-        'CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, quantity INTEGER NOT NULL, `order` INTEGER NOT NULL DEFAULT 0);'
-      );
-      
-      // Create quantity history table
-      db.execSync(
-        'CREATE TABLE IF NOT EXISTS quantity_history (id INTEGER PRIMARY KEY AUTOINCREMENT, productId INTEGER NOT NULL, quantity INTEGER NOT NULL, date TEXT NOT NULL, FOREIGN KEY(productId) REFERENCES products(id) ON DELETE CASCADE);'
-      );
-      
-      resolve(true);
-    } catch (error) {
-      reject(error);
-    }
+      try {
+          // Create core tables only
+          db.execSync(
+              'CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, quantity INTEGER NOT NULL);'
+          );
+          db.execSync(
+              'CREATE TABLE IF NOT EXISTS quantity_history (id INTEGER PRIMARY KEY AUTOINCREMENT, productId INTEGER NOT NULL, quantity INTEGER NOT NULL, date TEXT NOT NULL, FOREIGN KEY(productId) REFERENCES products(id) ON DELETE CASCADE);'
+          );
+          resolve(true);
+      } catch (error) {
+          reject(error);
+      }
   });
 };
+
 
 export const addProduct = (name: string, quantity: number): Promise<number> => {
   return new Promise((resolve, reject) => {
@@ -56,28 +141,49 @@ export const addProduct = (name: string, quantity: number): Promise<number> => {
     }
   });
 };
-
 export const getProducts = (): Promise<Product[]> => {
-  return new Promise((resolve, reject) => {
-    try {
-      const result = db.getAllSync('SELECT * FROM products ORDER BY `order` ASC;');
-      resolve(result as Product[]);
-    } catch (error) {
-      reject(error);
-    }
+  return new Promise(async (resolve, reject) => {
+      try {
+          const result = db.getAllSync('SELECT * FROM products ORDER BY `order` ASC;');
+          resolve(result as Product[]);
+      } catch (error: any) {
+        console.log('error caught', error);
+          if (error.message.includes('no such column') || error.message.includes('no such table')) {
+              try {
+                  repairDatabaseSchema('products');
+                  const result = db.getAllSync('SELECT * FROM products ORDER BY `order` ASC;');
+                  resolve(result as Product[]); // Retry after repair
+              } catch (repairError) {
+                  reject(repairError);
+              }
+          } else {
+              reject(error);
+          }
+      }
   });
 };
-
 export const getProductHistory = (productId: number): Promise<QuantityHistory[]> => {
-  return new Promise((resolve, reject) => {
-    try {
-      const result = db.getAllSync(
-        `SELECT * FROM quantity_history WHERE productId = ${productId} ORDER BY date DESC;`
-      );
-      resolve(result as QuantityHistory[]);
-    } catch (error) {
-      reject(error);
-    }
+  return new Promise(async (resolve, reject) => {
+      try {
+          const result = db.getAllSync(
+              `SELECT * FROM quantity_history WHERE productId = ${productId} ORDER BY date DESC;`
+          );
+          resolve(result as QuantityHistory[]);
+      } catch (error: any) {
+          if (error.message.includes('no such column') || error.message.includes('no such table')) {
+              try {
+                  repairDatabaseSchema('quantity_history');
+                  const result = db.getAllSync(
+                      `SELECT * FROM quantity_history WHERE productId = ${productId} ORDER BY date DESC;`
+                  );
+                  resolve(result as QuantityHistory[]); // Retry after repair
+              } catch (repairError) {
+                  reject(repairError);
+              }
+          } else {
+              reject(error);
+          }
+      }
   });
 };
 
@@ -144,6 +250,22 @@ export const updateProductOrder = (updates: { id: number; order: number }[]): Pr
       resolve();
     } catch (error) {
       db.execSync('ROLLBACK;');
+      reject(error);
+    }
+  });
+};
+
+export const updateProductName = (id: number, name: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    try {
+      // Escape single quotes in the name
+      const escapedName = name.replace(/'/g, "''");
+      db.execSync(
+        `UPDATE products SET name = '${escapedName}' WHERE id = ${id};`
+      );
+      resolve();
+    } catch (error) {
+      console.error('Error updating product name:', error);
       reject(error);
     }
   });
