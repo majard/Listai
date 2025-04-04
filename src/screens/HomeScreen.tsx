@@ -648,29 +648,35 @@ export default function HomeScreen() {
         style={styles.searchInput}
       />
       <View style={styles.header}>
-        <Button
-          mode="contained"
-          onPress={generateAndCopyStockList}
-          style={styles.copyButton}
-          icon="content-copy"
-        >
-          Salvar e copiar relatório
-        </Button>
-
         <View style={styles.buttonRow}>
+          <Button
+            mode="contained"
+            onPress={generateAndCopyStockList}
+            style={styles.copyButton}
+            icon="content-copy"
+            labelStyle={styles.buttonLabel}
+          >
+            Salvar
+          </Button>
+
           <Button
             mode="contained"
             onPress={handleImportButtonClick}
             icon="import"
+            labelStyle={styles.buttonLabel}
           >
-            <Text>Importar Lista</Text>{" "}
-            {/* Wrap the text in a <Text> component */}
+            Importar
           </Button>
+
           <Menu
             visible={menuVisible}
             onDismiss={closeMenu}
             anchor={
-              <Button icon="sort" onPress={openMenu}>
+              <Button
+                icon="sort"
+                onPress={openMenu}
+                labelStyle={styles.buttonLabel}
+              >
                 Ordenar
               </Button>
             }
@@ -775,7 +781,19 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#e0e0e0",
   },
-  copyButton: { marginBottom: 8 },
+  buttonRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  copyButton: {
+    marginRight: 3,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  buttonLabel: {
+    fontSize: 12,
+  },
   list: { padding: 16, paddingBottom: 160 },
   card: { marginBottom: 16 },
   cardHeader: {
@@ -800,12 +818,6 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, marginHorizontal: 8 },
   cardActions: { flexDirection: "row" },
-  buttonRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 8,
-  },
   modalContainer: {
     backgroundColor: "white",
     padding: 20,
@@ -818,11 +830,11 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 10,
-    textAlign: "center", // Center the title
+    textAlign: "center",
   },
   modalInput: {
-    height: 150, // Adjust height as needed
-    flexGrow: 1, // Allows it to grow within the maxHeight
+    height: 150,
+    flexGrow: 1,
     borderWidth: 1,
     borderColor: "gray",
     marginBottom: 10,
