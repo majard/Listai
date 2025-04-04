@@ -80,6 +80,18 @@ const preprocessName = (name: string): string => {
     .join(" ");
 };
 
+const debounce = (func, delay) => {
+  let timeoutId;
+  return (...args) => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    timeoutId = setTimeout(() => {
+      func(...args);
+    }, delay);
+  };
+};
+
 export default function HomeScreen() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isAdjusting, setIsAdjusting] = useState(false);
@@ -96,6 +108,8 @@ export default function HomeScreen() {
   const [isImportModalVisible, setIsImportModalVisible] = useState(false);
   const [importText, setImportText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [quantityTimeout, setQuantityTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [isInputEmpty, setIsInputEmpty] = useState(false);
 
   const openMenu = () => setMenuVisible(true);
   const closeMenu = () => setMenuVisible(false);
@@ -227,20 +241,30 @@ export default function HomeScreen() {
     );
   };
 
-  const handleQuantityInput = async (id: number, value: string) => {
-    try {
-      if (value === "") {
-        await updateProduct(id, 0);
-        loadProducts();
-        return;
-      }
-      const newQuantity = parseInt(value, 10);
-      if (!isNaN(newQuantity) && newQuantity >= 0) {
-        await updateProduct(id, newQuantity);
-        loadProducts();
-      }
-    } catch (error) {
-      console.error("Erro ao atualizar quantidade:", error);
+  // Debounced updateProduct function
+  const debouncedUpdateProduct = debounce(async (id, quantity) => {
+    await updateProduct(id, quantity);
+    loadProducts(); // Reload products to reflect changes
+  }, 700);
+
+  const handleQuantityInput = (id: number, value: string) => {
+    // Update the local state immediately
+    setProducts((prevProducts) =>
+      prevProducts.map((product) =>
+        product.id === id ? { ...product, quantity: value === "" ? 0 : parseInt(value, 10) } : product // Ensure quantity is a number
+      )
+    );
+
+    // If the input is empty, update to 0
+    if (value === "") {
+      debouncedUpdateProduct(id, 0); // Call the debounced function
+      return; // Exit the function
+    }
+
+    // If the input has a value, parse it and call the debounced function
+    const newQuantity = parseInt(value, 10);
+    if (!isNaN(newQuantity) && newQuantity >= 0) {
+      debouncedUpdateProduct(id, newQuantity); // Call the debounced function
     }
   };
 
@@ -766,7 +790,12 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f5f5", paddingTop: 32, paddingBottom: 32 },
+  container: {
+    flex: 1,
+    backgroundColor: "#f5f5f5",
+    paddingTop: 32,
+    paddingBottom: 32,
+  },
   header: {
     padding: 16,
     backgroundColor: "#fff",
