@@ -56,7 +56,8 @@ export default function App() {
               <Stack.Screen 
                 name="EditProduct" 
                 component={EditProductScreen} 
-                options={{ title: 'Editar Produto' }}
+                // header was interfering with the other views placement
+                options={{ title: 'Editar Produto', headerShown: false }}
               />
             </Stack.Navigator>
           </NavigationContainer>
