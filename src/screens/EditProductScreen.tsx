@@ -5,6 +5,7 @@ import {
   Dimensions,
   ScrollView,
   SafeAreaView,
+  Alert,
 } from "react-native";
 import {
   TextInput as PaperTextInput,
@@ -82,13 +83,30 @@ export default function EditProductScreen() {
   };
 
   const handleDelete = async () => {
-    try {
-      await deleteProduct(product.id);
-      navigation.navigate("Home", { shouldRefresh: true });
-    } catch (error) {
-      console.error("Erro ao deletar produto:", error);
-    }
+    Alert.alert(
+      "Confirmar Exclusão",
+      "Tem certeza que deseja excluir este produto?",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+        {
+          text: "Excluir",
+          onPress: async () => {
+            try {
+              await deleteProduct(product.id);
+              navigation.navigate("Home", { shouldRefresh: true });
+            } catch (error) {
+              console.error("Erro ao deletar produto:", error);
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
+
 
   const formatChartLabel = (dateString: string) => {
     const date = new Date(dateString);
