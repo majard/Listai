@@ -563,9 +563,7 @@ export default function HomeScreen() {
                     <Text variant="bodyMedium">Quantidade: </Text>
                     <TextInput
                       value={item.quantity.toString()}
-                      onChangeText={(value) =>
-                        handleQuantityInput(item.id, value)
-                      }
+                      onChangeText={(value) => handleQuantityInput(item.id, value)}
                       keyboardType="numeric"
                       style={styles.input}
                       mode="outlined"
