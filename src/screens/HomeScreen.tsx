@@ -37,7 +37,7 @@ import {
   addProduct,
 } from "../database/database";
 import { RootStackParamList } from "../types/navigation";
-import { parse, isSameDay, parseISO } from "date-fns";
+import { parse, isSameDay, parseISO, isBefore } from "date-fns";
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -316,7 +316,7 @@ export default function HomeScreen() {
   };
 
   const parseImportDate = (lines: string[]): Date | null => {
-    const dateFormats = ['dd/MM/yyyy', 'dd/MM/yy', 'dd/MM'];
+    const dateFormats = ["dd/MM/yyyy", "dd/MM/yy", "dd/MM"];
     const dateRegexes = [
       /(\d{2})\/(\d{2})\/(\d{4})/,
       /(\d{2})\/(\d{2})\/(\d{2})/,
@@ -325,7 +325,7 @@ export default function HomeScreen() {
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
     const currentMonth = currentDate.getMonth() + 1;
-  
+
     for (const line of lines) {
       for (let i = 0; i < dateFormats.length; i++) {
         const match = line.match(dateRegexes[i]);
@@ -333,16 +333,19 @@ export default function HomeScreen() {
           const format = dateFormats[i];
           const dateString = match[0]; // Extract the matched date string
           const parsedDate = parse(dateString, format, new Date());
-  
+
           if (!isNaN(parsedDate.getTime())) {
-            if (format === 'dd/MM') {
+            if (format === "dd/MM") {
               const day = parseInt(match[1], 10);
               const month = parseInt(match[2], 10) - 1; // Month is 0-indexed
-  
+
               // Determine the correct year
               let assumedYear = currentYear;
               const parsedMonth = month + 1;
-              if (parsedMonth > currentMonth || (parsedMonth === currentMonth && day > currentDate.getDate())) {
+              if (
+                parsedMonth > currentMonth ||
+                (parsedMonth === currentMonth && day > currentDate.getDate())
+              ) {
                 assumedYear--;
               }
               return new Date(assumedYear, month, day);
@@ -378,76 +381,133 @@ export default function HomeScreen() {
       const importedProducts = parseImportProducts(lines);
       const existingProducts = await getProducts();
       const similarityThreshold = 0.6;
-  
+      const now = new Date();
+
       console.log("Parsed importDate:", importDate);
-  
+
       for (const importedProduct of importedProducts) {
-        const processedImportName = preprocessName(importedProduct.originalName);
+        const processedImportName = preprocessName(
+          importedProduct.originalName
+        );
         let potentialMatches: { product: Product; similarity: number }[] = [];
-  
+
         for (const existingProduct of existingProducts) {
           const processedExistingName = preprocessName(existingProduct.name);
-          const similarity = calculateSimilarity(processedImportName, processedExistingName);
-  
+          const similarity = calculateSimilarity(
+            processedImportName,
+            processedExistingName
+          );
+
           if (similarity >= similarityThreshold) {
             potentialMatches.push({ product: existingProduct, similarity });
           }
         }
-  
+
         if (potentialMatches.length > 0) {
           let bestMatch: Product | null = null;
-          let maxHistoryCount = -1;
           let latestHistoryEntry: QuantityHistory | undefined;
-  
+
           for (const match of potentialMatches) {
-            const history = await getProductHistory(match.product.id.toString());
-            if (history.length > maxHistoryCount) {
-              maxHistoryCount = history.length;
+            const history = await getProductHistory(
+              match.product.id.toString()
+            );
+            if (history.length > 0) {
               bestMatch = match.product;
               latestHistoryEntry = history[0]; // Assuming history is sorted by date DESC
+              break; // Found the latest, no need to check others for this purpose
+            } else if (!bestMatch) {
+              bestMatch = match.product; // If no history, consider the first match for new history
             }
           }
-  
+
           if (bestMatch) {
-            console.log(`Considering "${importedProduct.originalName}" with existing "${bestMatch.name}" (history count: ${maxHistoryCount})`);
-  
-            // Check if the import date is the same day as the latest history entry
-            const isSameDayImport = importDate && latestHistoryEntry && isSameDay(importDate, parseISO(latestHistoryEntry.date));
-  
-            if (isSameDayImport) {
-              console.log(`Overwriting quantity of "${bestMatch.name}" with imported "${importedProduct.originalName}": ${importedProduct.quantity} (same day import)`);
-              await updateProduct(bestMatch.id, importedProduct.quantity);
+            console.log(
+              `Considering "${importedProduct.originalName}" with existing "${bestMatch.name}" (latest history: ${latestHistoryEntry?.date})`
+            );
+
+            if (importDate && !isBefore(importDate, now)) {
+              console.log(
+                `Skipping history save for "${importedProduct.originalName}" as import date is in the future.`
+              );
             } else {
-              console.log(`Adding imported quantity of "${importedProduct.originalName}" to "${bestMatch.name}": ${bestMatch.quantity} + ${importedProduct.quantity}`);
-              const newQuantity = (bestMatch.quantity || 0) + importedProduct.quantity;
-              await updateProduct(bestMatch.id, newQuantity);
+              const historyDate = importDate ? importDate : now;
+              await saveProductHistoryForSingleProduct(
+                bestMatch.id,
+                importedProduct.quantity,
+                historyDate
+              );
+
+              if (importDate && latestHistoryEntry) {
+                const lastHistoryDate = parseISO(latestHistoryEntry.date);
+                if (
+                  isBefore(lastHistoryDate, importDate) &&
+                  isSameDay(importDate, historyDate)
+                ) {
+                  console.log(
+                    `Overwriting quantity of "${bestMatch.name}" with imported "${importedProduct.originalName}": ${importedProduct.quantity} (imported date is newer than last history)`
+                  );
+                  await updateProduct(bestMatch.id, importedProduct.quantity);
+                } else {
+                  console.log(
+                    `Not overwriting quantity of "${bestMatch.name}". Last history is not older than import or not same day.`
+                  );
+                }
+              } else if (importDate && !latestHistoryEntry) {
+                console.log(
+                  `Overwriting quantity of "${bestMatch.name}" with imported "${importedProduct.originalName}": ${importedProduct.quantity} (no existing history)`
+                );
+                await updateProduct(bestMatch.id, importedProduct.quantity);
+              }
             }
-  
-            // Save to history with the import date or current date
-            const historyDate = importDate ? importDate : new Date();
-            await saveProductHistoryForSingleProduct(bestMatch.id, importedProduct.quantity, historyDate);
-  
           } else {
-            console.log(`Creating new product (no best match found despite potential matches): "${importedProduct.originalName}"`);
-            const newProductId = await addProduct(importedProduct.originalName, importedProduct.quantity);
-            const historyDate = importDate ? importDate : new Date();
-            await saveProductHistoryForSingleProduct(newProductId, importedProduct.quantity, historyDate);
+            console.log(
+              `Creating new product: "${importedProduct.originalName}"`
+            );
+            const newProductId = await addProduct(
+              importedProduct.originalName,
+              importedProduct.quantity
+            );
+            if (importDate && !isBefore(importDate, now)) {
+              console.log(
+                `Skipping history save for new product "${importedProduct.originalName}" as import date is in the future.`
+              );
+            } else {
+              const historyDate = importDate ? importDate : now;
+              await saveProductHistoryForSingleProduct(
+                newProductId,
+                importedProduct.quantity,
+                historyDate
+              );
+            }
           }
         } else {
-          console.log(`Creating new product (no similar product found): "${importedProduct.originalName}"`);
-          const newProductId = await addProduct(importedProduct.originalName, importedProduct.quantity);
-          const historyDate = importDate ? importDate : new Date();
-          await saveProductHistoryForSingleProduct(newProductId, importedProduct.quantity, historyDate);
+          console.log(
+            `Creating new product (no similar product found): "${importedProduct.originalName}"`
+          );
+          const newProductId = await addProduct(
+            importedProduct.originalName,
+            importedProduct.quantity
+          );
+          if (importDate && !isBefore(importDate, now)) {
+            console.log(
+              `Skipping history save for new product "${importedProduct.originalName}" as import date is in the future.`
+            );
+          } else {
+            const historyDate = importDate ? importDate : now;
+            await saveProductHistoryForSingleProduct(
+              newProductId,
+              importedProduct.quantity,
+              historyDate
+            );
+          }
         }
       }
-  
+
       await loadProducts();
-  
     } catch (error) {
       console.error("Erro ao importar lista:", error);
     }
   };
-
 
   const renderItem = ({
     item,
