@@ -67,7 +67,6 @@ const addMissingColumn = (tableName: string, columnName: string, columnType: str
   }
 
   const alterStatement = `ALTER TABLE ${tableName} ADD COLUMN \`${columnName}\` ${columnType.replace('NOT NULL', '')}${defaultValueClause};`;
-  console.log(`Executing: ${alterStatement}`);
   db.execSync(alterStatement);
 };
 
@@ -91,7 +90,6 @@ const repairDatabaseSchema = (tableName: string) => {
       const createStatement = `CREATE TABLE IF NOT EXISTS ${tableName} (${columns
           .map(col => `${col.name} ${col.type}`)
           .join(', ')});`;
-      console.log(`Executing: ${createStatement}`);
       db.execSync(createStatement);
   } else {
       const existingColumns = getExistingColumns(tableName);
@@ -147,7 +145,6 @@ export const getProducts = (): Promise<Product[]> => {
           const result = db.getAllSync('SELECT * FROM products ORDER BY `order` ASC;');
           resolve(result as Product[]);
       } catch (error: any) {
-        console.log('error caught', error);
           if (error.message.includes('no such column') || error.message.includes('no such table')) {
               try {
                   repairDatabaseSchema('products');
@@ -201,25 +198,37 @@ export const updateProduct = (id: number, quantity: number): Promise<void> => {
   });
 };
 
+
 export const saveProductHistory = async (): Promise<void> => {
   return new Promise((resolve, reject) => {
-    try {
-      const date = new Date().toISOString();
-      const products = db.getAllSync('SELECT * FROM products;') as Product[];
-      
-      // Update lastUpdated for all products
-      products.forEach(product => {
-        
-        // Add current quantities to history
-        db.execSync(
-          `INSERT INTO quantity_history (productId, quantity, date) VALUES (${product.id}, ${product.quantity}, '${date}');`
-        );
-      });
-      
-      resolve();
-    } catch (error) {
-      reject(error);
-    }
+      try {
+          const now = new Date();
+          const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+          const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString();
+
+          const products = db.getAllSync('SELECT * FROM products;') as Product[];
+
+          products.forEach(product => {
+              const existingEntry = db.getFirstSync(
+                  `SELECT id FROM quantity_history WHERE productId = ${product.id} AND date >= '${todayStart}' AND date < '${todayEnd}';`
+              ) as { id: number };
+
+              if (existingEntry) {
+                  db.execSync(
+                      `UPDATE quantity_history SET quantity = ${product.quantity}, date = '${now.toISOString()}' WHERE id = ${existingEntry.id};`
+                  );
+              } else {
+                  db.execSync(
+                      `INSERT INTO quantity_history (productId, quantity, date) VALUES (${product.id}, ${product.quantity}, '${now.toISOString()}');`
+                  );
+              }
+          });
+
+          resolve();
+      } catch (error) {
+          console.error("Error in saveProductHistory:", error);
+          reject(error);
+      }
   });
 };
 
