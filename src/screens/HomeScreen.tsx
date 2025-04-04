@@ -8,6 +8,7 @@ import {
   TextInput,
   Modal,
   TextInput as RNTextInput,
+  SafeAreaView,
 } from "react-native";
 import {
   FAB,
@@ -637,11 +638,11 @@ export default function HomeScreen() {
   });
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.searchContainer}>
           <TextInput
-            placeholder="Search products..."
+            placeholder="Pesquisar"
             value={searchQuery}
             onChangeText={setSearchQuery}
             style={styles.searchInput}
@@ -762,12 +763,12 @@ export default function HomeScreen() {
           </View>
         </Modal>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f5f5" },
+  container: { flex: 1, backgroundColor: "#f5f5f5", paddingTop: 32, paddingBottom: 32 },
   header: {
     padding: 16,
     backgroundColor: "#fff",
