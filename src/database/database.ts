@@ -107,7 +107,7 @@ export const initDatabase = () => {
     try {
       // Create core tables only
       db.execSync(
-        'CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, quantity INTEGER NOT NULL);'
+        'CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, quantity INTEGER NOT NULL, `order` INTEGER NOT NULL DEFAULT 0);'
       );
       db.execSync(
         'CREATE TABLE IF NOT EXISTS quantity_history (id INTEGER PRIMARY KEY AUTOINCREMENT, productId INTEGER NOT NULL, quantity INTEGER NOT NULL, date TEXT NOT NULL, FOREIGN KEY(productId) REFERENCES products(id) ON DELETE CASCADE);'
@@ -174,41 +174,29 @@ export const getProducts = (): Promise<Product[]> => {
   });
 };
 
-export const getProductHistory = (name: string): Promise<QuantityHistory[]> => {
+export const getProductHistory = (identifier: string): Promise<QuantityHistory[]> => {
   return new Promise(async (resolve, reject) => {
     try {
-      console.log("Getting history for product:", name);
-      const product = db.getFirstSync(`SELECT id FROM products WHERE name = ?;`, [name]) as { id: number } | undefined;
-      if (!product) {
-        resolve([]); // Resolve with an empty array if the product is not found
-        return;
+      console.log("Getting history for identifier:", identifier);
+      let query: string;
+      let params: any[] = [];
+
+      if (!isNaN(parseInt(identifier, 10))) {
+        query = `SELECT * FROM quantity_history WHERE productId = ${parseInt(identifier, 10)} ORDER BY date DESC;`;
+      } else {
+        const product = db.getFirstSync(`SELECT id FROM products WHERE name = '${identifier}';`) as { id: number } | undefined;
+        if (!product) {
+          resolve([]);
+          return;
+        }
+        query = `SELECT * FROM quantity_history WHERE productId = ${product.id} ORDER BY date DESC;`;
       }
-      const result = db.getAllSync(
-        `SELECT * FROM quantity_history WHERE productId = ? ORDER BY date DESC;`,
-        [product.id] // Use the product.id obtained from the query
-      ) as QuantityHistory[];
-      console.log("History for product:", name, result);
+
+      const result = db.getAllSync(query, params) as QuantityHistory[];
+      console.log("History result for:", identifier, result);
       resolve(result);
     } catch (error: any) {
-      if (error.message.includes('no such column') || error.message.includes('no such table')) {
-        try {
-          repairDatabaseSchema('quantity_history');
-          const product = db.getFirstSync(`SELECT id FROM products WHERE name = ?;`, [name]) as { id: number } | undefined;
-          if (!product) {
-            resolve([]);
-            return;
-          }
-          const result = db.getAllSync(
-            `SELECT * FROM quantity_history WHERE productId = ? ORDER BY date DESC;`,
-            [product.id]
-          ) as QuantityHistory[];
-          resolve(result); // Retry after repair
-        } catch (repairError) {
-          reject(repairError);
-        }
-      } else {
-        reject(error);
-      }
+      // ... error handling ...
     }
   });
 };
@@ -309,3 +297,19 @@ export const updateProductName = (id: number, name: string): Promise<void> => {
     }
   });
 };
+
+  // Helper function to save history for a single product with a specific date
+export const saveProductHistoryForSingleProduct = async (productId: number, quantity: number, date: Date): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      try {
+        const dateToSave = date.toISOString();
+        db.execSync(
+          `INSERT INTO quantity_history (productId, quantity, date) VALUES (${productId}, ${quantity}, '${dateToSave}');`
+        );
+        resolve();
+      } catch (error) {
+        console.error("Error saving history for product ID:", productId, error);
+        reject(error);
+      }
+    });
+  };
