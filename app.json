@@ -2,7 +2,7 @@
   "expo": {
     "name": "Listai",
     "slug": "listai",
-    "version": "1.1.5",
+    "version": "1.1.7",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
