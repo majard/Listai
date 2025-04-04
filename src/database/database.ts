@@ -125,7 +125,6 @@ export const createProduct = (name: string, quantity: number): Promise<void> => 
     try {
       db.execSync(
         `INSERT INTO products (name, quantity) VALUES ('${name.trim()}', ${quantity});`
-
       );
       resolve();
     } catch (error) {
@@ -216,7 +215,7 @@ export const getProductHistory = (name: string): Promise<QuantityHistory[]> => {
 
 export const updateProduct = (id: number, quantity: number): Promise<void> => {
   return new Promise((resolve, reject) => {
-    console.log("Updating product:", id, quantity);   
+    console.log("Updating product:", id, quantity);
     try {
       db.execSync(
         `UPDATE products SET quantity = ${quantity} WHERE id = ${id};`
@@ -228,30 +227,32 @@ export const updateProduct = (id: number, quantity: number): Promise<void> => {
   });
 };
 
-export const saveProductHistory = async (): Promise<void> => {
+export const saveProductHistory = async (overrideDate?: Date): Promise<void> => {
   return new Promise((resolve, reject) => {
     try {
-      const now = new Date();
+      const now = overrideDate ? overrideDate : new Date();
+      const dateToSave = now.toISOString();
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
       const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString();
 
-      const products = db.getAllSync('SELECT * FROM products;') as Product[];
+      // Fetch products directly from the database
+      const latestProducts = db.getAllSync('SELECT id, quantity FROM products;') as { id: number; quantity: number }[];
 
-          products.forEach(product => {
-              const existingEntry = db.getFirstSync(
-                  `SELECT id FROM quantity_history WHERE productId = ${product.id} AND date >= '${todayStart}' AND date < '${todayEnd}';`
-              ) as { id: number };
+      latestProducts.forEach(product => {
+        const existingEntry = db.getFirstSync(
+          `SELECT id FROM quantity_history WHERE productId = ${product.id} AND date >= '${todayStart}' AND date < '${todayEnd}';`
+        ) as { id: number };
 
-              if (existingEntry) {
-                  db.execSync(
-                      `UPDATE quantity_history SET quantity = ${product.quantity}, date = '${now.toISOString()}' WHERE id = ${existingEntry.id};`
-                  );
-              } else {
-                  db.execSync(
-                      `INSERT INTO quantity_history (productId, quantity, date) VALUES (${product.id}, ${product.quantity}, '${now.toISOString()}');`
-                  );
-              }
-          });
+        if (existingEntry) {
+          db.execSync(
+            `UPDATE quantity_history SET quantity = ${product.quantity}, date = '${dateToSave}' WHERE id = ${existingEntry.id};`
+          );
+        } else {
+          db.execSync(
+            `INSERT INTO quantity_history (productId, quantity, date) VALUES (${product.id}, ${product.quantity}, '${dateToSave}');`
+          );
+        }
+      });
 
       resolve();
     } catch (error) {
