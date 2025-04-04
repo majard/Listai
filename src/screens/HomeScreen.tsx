@@ -638,21 +638,20 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <TextInput
-        placeholder="Pesquisar produto..."
-        value={searchQuery}
-        onChangeText={(text) => {
-          setSearchQuery(text);
-          console.log("Current Search Query:", text); // Log the current input
-        }}
-        style={styles.searchInput}
-      />
       <View style={styles.header}>
+        <View style={styles.searchContainer}>
+          <TextInput
+            placeholder="Search products..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            style={styles.searchInput}
+          />
+        </View>
         <View style={styles.buttonRow}>
           <Button
             mode="contained"
             onPress={generateAndCopyStockList}
-            style={styles.copyButton}
+            style={styles.button}
             icon="content-copy"
             labelStyle={styles.buttonLabel}
           >
@@ -663,6 +662,7 @@ export default function HomeScreen() {
             mode="contained"
             onPress={handleImportButtonClick}
             icon="import"
+            style={styles.button}
             labelStyle={styles.buttonLabel}
           >
             Importar
@@ -675,6 +675,7 @@ export default function HomeScreen() {
               <Button
                 icon="sort"
                 onPress={openMenu}
+                style={styles.button}
                 labelStyle={styles.buttonLabel}
               >
                 Ordenar
@@ -767,29 +768,31 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f5f5f5" },
-  searchInput: {
-    height: 40,
-    borderColor: "gray",
-    borderWidth: 1,
-    borderRadius: 5,
-    margin: 16,
-    paddingHorizontal: 10,
-  },
   header: {
     padding: 16,
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#e0e0e0",
   },
+  searchContainer: {
+    marginBottom: 8,
+  },
+  searchInput: {
+    height: 40,
+    borderColor: "gray",
+    borderWidth: 1,
+    borderRadius: 5,
+    paddingHorizontal: 10,
+  },
   buttonRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
     alignItems: "center",
   },
-  copyButton: {
-    marginRight: 3,
+  button: {
     paddingVertical: 4,
     paddingHorizontal: 8,
+    marginRight: 8,
   },
   buttonLabel: {
     fontSize: 12,
