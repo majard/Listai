@@ -35,6 +35,7 @@ import {
   createProduct,
   saveProductHistoryForSingleProduct,
   addProduct,
+  QuantityHistory,
 } from "../database/database";
 import { RootStackParamList } from "../types/navigation";
 import { parse, isSameDay, parseISO, isBefore } from "date-fns";
@@ -61,6 +62,23 @@ const getEmojiForProduct = (name: string): string => {
   return "🍽️";
 };
 
+const similarityThreshold = 0.6; // Define your similarity threshold
+const searchSimilarityThreshold = 0.5; // Define your similarity threshold
+
+const commonOmittedWords = ["de", "do", "da", "e", "com"]; // Add more as needed
+
+const preprocessName = (name: string): string => {
+  return name
+    .normalize("NFD") // Normalize to decompose combined characters
+    .replace(/[\u0300-\u036f]/g, "") // R
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(" ")
+    .filter((word) => !commonOmittedWords.includes(word))
+    .join(" ");
+};
+
 export default function HomeScreen() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isAdjusting, setIsAdjusting] = useState(false);
@@ -76,6 +94,7 @@ export default function HomeScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [isImportModalVisible, setIsImportModalVisible] = useState(false);
   const [importText, setImportText] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const openMenu = () => setMenuVisible(true);
   const closeMenu = () => setMenuVisible(false);
@@ -293,17 +312,6 @@ export default function HomeScreen() {
       loadProducts();
     }
   };
-  const commonOmittedWords = ["de", "do", "da", "e", "com"]; // Add more as needed
-
-  const preprocessName = (name: string): string => {
-    return name
-      .toLowerCase()
-      .replace(/\s+/g, " ")
-      .trim()
-      .split(" ")
-      .filter((word) => !commonOmittedWords.includes(word))
-      .join(" ");
-  };
 
   const calculateSimilarity = (name1: string, name2: string): number => {
     const set1 = new Set(name1.split(""));
@@ -380,7 +388,6 @@ export default function HomeScreen() {
       const importDate = parseImportDate(lines);
       const importedProducts = parseImportProducts(lines);
       const existingProducts = await getProducts();
-      const similarityThreshold = 0.6;
       const now = new Date();
 
       console.log("Parsed importDate:", importDate);
@@ -597,8 +604,49 @@ export default function HomeScreen() {
     );
   };
 
+  const filteredProducts = products.filter((product) => {
+    const processedProductName = preprocessName(product.name);
+    const processedSearchQuery = preprocessName(searchQuery);
+
+    console.log("Processed Product Name:", processedProductName);
+    console.log("Processed Search Query:", processedSearchQuery);
+
+    // If search query is empty, return all products
+    if (!processedSearchQuery) {
+      return true;
+    }
+
+    // Calculate the length threshold
+    const nameLength = processedProductName.length;
+    const queryLength = processedSearchQuery.length;
+    const lengthThreshold = Math.ceil(nameLength * 0.5); // 50% of the product name length
+
+    // Use a simple substring match if the query is less than 50% of the product name length
+    if (queryLength < lengthThreshold) {
+      return processedProductName.includes(processedSearchQuery);
+    }
+
+    // Calculate similarity if the query meets the length requirement
+    const similarity = calculateSimilarity(
+      processedProductName,
+      processedSearchQuery
+    );
+    console.log("Similarity:", similarity);
+
+    return similarity >= searchSimilarityThreshold;
+  });
+
   return (
     <View style={styles.container}>
+      <TextInput
+        placeholder="Pesquisar produto..."
+        value={searchQuery}
+        onChangeText={(text) => {
+          setSearchQuery(text);
+          console.log("Current Search Query:", text); // Log the current input
+        }}
+        style={styles.searchInput}
+      />
       <View style={styles.header}>
         <Button
           mode="contained"
@@ -662,7 +710,7 @@ export default function HomeScreen() {
         </View>
       </View>
       <DraggableFlatList
-        data={products}
+        data={filteredProducts}
         onDragEnd={handleDragEnd}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderItem}
@@ -713,6 +761,14 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f5f5f5" },
+  searchInput: {
+    height: 40,
+    borderColor: "gray",
+    borderWidth: 1,
+    borderRadius: 5,
+    margin: 16,
+    paddingHorizontal: 10,
+  },
   header: {
     padding: 16,
     backgroundColor: "#fff",
