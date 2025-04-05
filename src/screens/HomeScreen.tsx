@@ -42,6 +42,8 @@ import {
 } from "../database/database";
 import { RootStackParamList } from "../types/navigation";
 import { parse, isSameDay, parseISO, isBefore } from "date-fns";
+import { updateProductQuantity } from "../database/database";
+import { findSimilarProducts } from "../utils/similarityUtils";
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -195,14 +197,12 @@ export default function HomeScreen() {
   };
 
   const handleImportModalImport = () => {
-    console.log("Import Text submitted:", importText); // Add this line
     importStockList(importText);
     setIsImportModalVisible(false);
     setImportText("");
   };
 
   const handleImportModalCancel = () => {
-    console.log("Cancelando importação");
     setIsImportModalVisible(false);
     setImportText("");
   };
@@ -361,7 +361,7 @@ export default function HomeScreen() {
         day: "2-digit",
         month: "2-digit",
       });
-      let text = `Boa noite! 🌃 ${dateStr}\n\n`;
+      let text = `Boa noite! ${dateStr}\n\n`;
       text += "Aqui está a lista de produção do dia:\n\n";
       products.forEach((product) => {
         const emoji = getEmojiForProduct(product.name);
@@ -523,8 +523,6 @@ export default function HomeScreen() {
       const importedProducts = parseImportProducts(lines);
       const existingProducts = await getProducts();
 
-      console.log("Parsed importDate:", importDate);
-
       await processNextProduct(importedProducts, importDate, existingProducts);
     } catch (error) {
       console.error("Error importing stock list:", error);
@@ -641,6 +639,55 @@ export default function HomeScreen() {
     setCurrentImportItem(null);
   };
 
+  const handleAcceptAllSuggestions = async () => {
+    try {
+      if (!currentImportItem) return;
+
+      // Get all remaining products that have similar matches
+      const productsToUpdate = currentImportItem.remainingProducts.filter(product => {
+        const similarProducts = findSimilarProducts(product.originalName, products);
+        return similarProducts.length > 0;
+      });
+
+      // Update all products
+      for (const product of productsToUpdate) {
+        const similarProducts = findSimilarProducts(product.originalName, products);
+        if (similarProducts.length > 0) {
+          const bestMatch = similarProducts[0];
+          await updateProductQuantity(bestMatch.id, product.quantity);
+        }
+      }
+
+      // Filter out the updated products and continue with the rest
+      const remainingProducts = currentImportItem.remainingProducts.filter(product => {
+        const similarProducts = findSimilarProducts(product.originalName, products);
+        return similarProducts.length === 0;
+      });
+
+      setConfirmationModalVisible(false);
+      await processNextProduct(remainingProducts);
+    } catch (error) {
+      console.error('Error accepting all suggestions:', error);
+    }
+  };
+
+  const handleUpdateQuantityOnly = async () => {
+    try {
+      if (!currentImportItem?.bestMatch) return;
+
+      await updateProductQuantity(
+        currentImportItem.bestMatch.id,
+        currentImportItem.importedProduct.quantity
+      );
+
+      const remainingProducts = currentImportItem.remainingProducts;
+      setConfirmationModalVisible(false);
+      await processNextProduct(remainingProducts);
+    } catch (error) {
+      console.error('Error updating quantity:', error);
+    }
+  };
+
   const renderItem = ({
     item,
     drag,
@@ -733,9 +780,6 @@ export default function HomeScreen() {
     const processedProductName = preprocessName(product.name);
     const processedSearchQuery = preprocessName(searchQuery);
 
-    console.log("Processed Product Name:", processedProductName);
-    console.log("Processed Search Query:", processedSearchQuery);
-
     // If search query is empty, return all products
     if (!processedSearchQuery) {
       return true;
@@ -756,7 +800,6 @@ export default function HomeScreen() {
       processedProductName,
       processedSearchQuery
     );
-    console.log("Similarity:", similarity);
 
     return similarity >= searchSimilarityThreshold;
   });
@@ -855,7 +898,7 @@ export default function HomeScreen() {
       padding: 20,
       borderRadius: 12,
       width: '100%',
-      maxHeight: '80%',
+      maxHeight: '100%',
       elevation: 5,
       shadowColor: "#000",
       shadowOffset: {
@@ -1069,7 +1112,7 @@ export default function HomeScreen() {
           <View style={styles.modalOverlay}>
             <View style={styles.modalContainer}>
               <Text style={styles.modalTitle}>Produto Similar Encontrado</Text>
-              <ScrollView style={styles.confirmationContent}>
+              <View style={styles.confirmationContent}>
                 <View style={styles.productInfo}>
                   <Text style={styles.productLabel}>Produto importado:</Text>
                   <Text style={styles.productValue}>{currentImportItem?.importedProduct.originalName}</Text>
@@ -1092,8 +1135,16 @@ export default function HomeScreen() {
                     ))}
                   </View>
                 )}
-              </ScrollView>
+              </View>
               <View style={styles.modalButtonsStacked}>
+                <Button 
+                  mode="contained"
+                  onPress={handleUpdateQuantityOnly}
+                  style={styles.stackedButton}
+                  labelStyle={styles.buttonLabel}
+                >
+                  Atualizar Apenas Quantidade
+                </Button>
                 <Button 
                   mode="contained"
                   onPress={handleConfirmOverwrite} 
@@ -1112,6 +1163,14 @@ export default function HomeScreen() {
                     Sobrescrever Todos Similares
                   </Button>
                 )}
+                <Button 
+                  mode="contained-tonal"
+                  onPress={handleAcceptAllSuggestions} 
+                  style={styles.stackedButton}
+                  labelStyle={styles.buttonLabel}
+                >
+                  Aceitar Todas as Sugestões
+                </Button>
                 <Button 
                   mode="outlined"
                   onPress={handleCreateNew} 
