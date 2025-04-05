@@ -68,6 +68,9 @@ type Styles = {
   similarProductItem: ViewStyle;
   quantityText: TextStyle;
   dateText: TextStyle;
+  similarProductsContainer: ViewStyle;
+  buttonContainer: ViewStyle;
+  sectionTitle: TextStyle;
 };
 
 const getEmojiForProduct = (name: string): string => {
@@ -87,7 +90,7 @@ const getEmojiForProduct = (name: string): string => {
   return "🍽️";
 };
 
-const similarityThreshold = 0.2; // Define your similarity threshold
+const similarityThreshold = 0.5; // Define your similarity threshold
 const searchSimilarityThreshold = 0.4; // Define your similarity threshold
 
 const commonOmittedWords = ["de", "do", "da", "e", "com"]; // Add more as needed
@@ -774,84 +777,92 @@ export default function HomeScreen() {
         onRequestClose={() => setConfirmationModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Produto Similar Encontrado</Text>
-            <View style={styles.confirmationContent}>
-              <View style={styles.productCompareContainer}>
-                <View style={styles.productInfoColumn}>
-                  <Text style={styles.productLabel}>Produto Importado:</Text>
-                  <Text style={styles.productValue}>{importedProduct.originalName}</Text>
-                  <Text style={styles.quantityText}>
-                    Quantidade: {importedProduct.quantity}
-                  </Text>
-                  {importDate && (
-                    <Text style={styles.dateText}>
-                      Data: {formatDate(importDate)}
-                    </Text>
-                  )}
-                </View>
-                <View style={styles.productInfoColumn}>
-                  <Text style={styles.productLabel}>Produto Existente:</Text>
-                  <Text style={styles.productValue}>{bestMatch.name}</Text>
-                  <Text style={styles.quantityText}>
-                    Quantidade: {bestMatch.quantity}
-                  </Text>
-                </View>
-              </View>
-              <ScrollView style={styles.similarProductsScroll}>
-                {similarProducts.slice(1).map((product, index) => (
-                  <View key={index} style={styles.similarProductItem}>
-                    <Text style={styles.productValue}>{product.name}</Text>
+          <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>Produto Similar Encontrado</Text>
+              <View style={styles.confirmationContent}>
+                <View style={styles.productCompareContainer}>
+                  <View style={styles.productInfoColumn}>
+                    <Text style={styles.productLabel}>Produto Importado:</Text>
+                    <Text style={styles.productValue}>{importedProduct.originalName}</Text>
                     <Text style={styles.quantityText}>
-                      Quantidade: {product.quantity}
+                      Quantidade: {importedProduct.quantity}
+                    </Text>
+                    {importDate && (
+                      <Text style={styles.dateText}>
+                        Data: {formatDate(importDate)}
+                      </Text>
+                    )}
+                  </View>
+                  <View style={styles.productInfoColumn}>
+                    <Text style={styles.productLabel}>Produto Existente:</Text>
+                    <Text style={styles.productValue}>{bestMatch.name}</Text>
+                    <Text style={styles.quantityText}>
+                      Quantidade: {bestMatch.quantity}
                     </Text>
                   </View>
-                ))}
-              </ScrollView>
+                </View>
+                
+                {similarProducts.length > 1 && (
+                  <View style={styles.similarProductsContainer}>
+                    <Text style={styles.sectionTitle}>Outros Produtos Similares:</Text>
+                    <ScrollView style={styles.similarProductsScroll} nestedScrollEnabled={true}>
+                      {similarProducts.slice(1).map((product, index) => (
+                        <View key={index} style={styles.similarProductItem}>
+                          <Text style={styles.productValue}>{product.name}</Text>
+                          <Text style={styles.quantityText}>
+                            Quantidade: {product.quantity}
+                          </Text>
+                        </View>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+              </View>
+              <View style={styles.buttonContainer}>
+                <Button
+                  mode="contained"
+                  onPress={handleAcceptAllSimilar}
+                  style={[styles.stackedButton, styles.actionButton]}
+                  labelStyle={styles.buttonLabelStyle}
+                >
+                  Aceitar Todas as Sugestões
+                </Button>
+                <Button
+                  mode="contained"
+                  onPress={handleUpdateQuantityOnly}
+                  style={[styles.stackedButton, styles.actionButton]}
+                  labelStyle={styles.buttonLabelStyle}
+                >
+                  {isNewerOrSameDate ? 'Atualizar Quantidade' : 'Adicionar ao Histórico'}
+                </Button>
+                <Button
+                  mode="contained"
+                  onPress={handleCreateNew}
+                  style={[styles.stackedButton, styles.actionButton]}
+                  labelStyle={styles.buttonLabelStyle}
+                >
+                  Criar Novo
+                </Button>
+                <Button
+                  mode="text"
+                  onPress={handleSkipImport}
+                  style={styles.stackedButton}
+                  labelStyle={[styles.buttonLabelStyle, styles.skipButtonLabel]}
+                >
+                  Pular
+                </Button>
+                <Button
+                  mode="text"
+                  onPress={handleCancelAllImports}
+                  style={styles.stackedButton}
+                  labelStyle={[styles.buttonLabelStyle, styles.cancelButtonLabel]}
+                >
+                  Cancelar Todos
+                </Button>
+              </View>
             </View>
-            <View style={styles.modalButtonsContainer}>
-              <Button
-                mode="contained"
-                onPress={handleAcceptAllSimilar}
-                style={[styles.stackedButton, styles.actionButton]}
-                labelStyle={styles.buttonLabelStyle}
-              >
-                Aceitar Todas as Sugestões
-              </Button>
-              <Button
-                mode="contained"
-                onPress={handleUpdateQuantityOnly}
-                style={[styles.stackedButton, styles.actionButton]}
-                labelStyle={styles.buttonLabelStyle}
-              >
-                {isNewerOrSameDate ? 'Atualizar Quantidade' : 'Adicionar ao Histórico'}
-              </Button>
-              <Button
-                mode="contained"
-                onPress={handleCreateNew}
-                style={[styles.stackedButton, styles.actionButton]}
-                labelStyle={styles.buttonLabelStyle}
-              >
-                Criar Novo
-              </Button>
-              <Button
-                mode="text"
-                onPress={handleSkipImport}
-                style={styles.stackedButton}
-                labelStyle={[styles.buttonLabelStyle, styles.skipButtonLabel]}
-              >
-                Pular
-              </Button>
-              <Button
-                mode="text"
-                onPress={handleCancelAllImports}
-                style={styles.stackedButton}
-                labelStyle={[styles.buttonLabelStyle, styles.cancelButtonLabel]}
-              >
-                Cancelar Todos
-              </Button>
-            </View>
-          </View>
+          </ScrollView>
         </View>
       </Modal>
     );
@@ -1058,18 +1069,18 @@ export default function HomeScreen() {
     },
     modalOverlay: {
       flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
       justifyContent: 'center',
       alignItems: 'center',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
       padding: 16,
     },
     modalContainer: {
-      backgroundColor: "white",
-      padding: 16,
+      backgroundColor: theme.colors.background,
+      padding: 20,
       borderRadius: 12,
       width: '100%',
-      maxHeight: '90%',
-      minHeight: '70%',
+      minWidth: 320,
+      maxHeight: '100%',
       elevation: 5,
       shadowColor: "#000",
       shadowOffset: {
@@ -1077,7 +1088,7 @@ export default function HomeScreen() {
         height: 2,
       },
       shadowOpacity: 0.25,
-      shadowRadius: 3.84,
+      shadowRadius: 4,
     },
     modalTitle: {
       fontSize: 18,
@@ -1168,21 +1179,40 @@ export default function HomeScreen() {
       justifyContent: 'space-between',
       gap: 12,
       flex: 1,
-      minHeight: 200,
+      minHeight: 100,
     },
     productInfoColumn: {
       flex: 1,
       minHeight: 100,
     },
     similarProductsScroll: {
-      flex: 1,
-      minHeight: 100,
+      maxHeight: 150,
+      marginTop: 8,
     },
     similarProductItem: {
-      marginBottom: 8,
-      padding: 8,
-      backgroundColor: "#f8f9fa",
+      padding: 10,
       borderRadius: 8,
+      backgroundColor: '#f5f5f5',
+      marginBottom: 8,
+    },
+    similarProductsContainer: {
+      marginTop: 16,
+      borderTopWidth: 1,
+      borderTopColor: '#e0e0e0',
+      paddingTop: 16,
+      width: '100%',
+      height: 196,
+    },
+    buttonContainer: {
+      gap: 10,
+      marginTop: 96,
+      height: 256,
+    },
+    sectionTitle: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: '#333',
+      marginBottom: 8,
     },
   });
 
