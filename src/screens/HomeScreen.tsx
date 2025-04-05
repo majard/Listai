@@ -19,7 +19,7 @@ import {
   addProduct,
   consolidateProductHistory
 } from "../database/database";
-import { findSimilarProducts } from "../utils/similarityUtils";
+import { calculateSimilarity, preprocessName } from "../utils/similarityUtils";
 import { RootStackParamList } from "../types/navigation";
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
@@ -92,18 +92,6 @@ const searchSimilarityThreshold = 0.4; // Define your similarity threshold
 
 const commonOmittedWords = ["de", "do", "da", "e", "com"]; // Add more as needed
 
-const preprocessName = (name: string): string => {
-  return name
-    .normalize("NFD") // Normalize to decompose combined characters
-    .replace(/[\u0300-\u036f]/g, "") // R
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim()
-    .split(" ")
-    .filter((word) => !commonOmittedWords.includes(word))
-    .join(" ");
-};
-
 const debounce = (func, delay) => {
   let timeoutId;
   return (...args) => {
@@ -149,6 +137,19 @@ export default function HomeScreen() {
 
   const sortProducts = (productsToSort: Product[]) => {
     let sortedProducts = [...productsToSort];
+    
+    // If there's a search query, sort by similarity
+    if (searchQuery.trim()) {
+      const processedQuery = preprocessName(searchQuery);
+      sortedProducts.sort((a, b) => {
+        const similarityA = calculateSimilarity(processedQuery, preprocessName(a.name));
+        const similarityB = calculateSimilarity(processedQuery, preprocessName(b.name));
+        return similarityB - similarityA;
+      });
+      return sortedProducts;
+    }
+
+    // Otherwise use the selected sort order
     switch (sortOrder) {
       case "alphabetical":
         sortedProducts.sort((a, b) => a.name.localeCompare(b.name));
@@ -372,16 +373,6 @@ export default function HomeScreen() {
     }
   };
 
-  const calculateSimilarity = (name1: string, name2: string): number => {
-    const set1 = new Set(name1.split(""));
-    const set2 = new Set(name2.split(""));
-    const intersection = new Set([...set1].filter((x) => set2.has(x)));
-    const commonLetters = intersection.size;
-    const maxLength = Math.max(name1.length, name2.length);
-    if (maxLength === 0) return 0;
-    return commonLetters / maxLength; // Simple ratio of common letters
-  };
-
   const parseImportDate = (lines: string[]): Date | null => {
     const dateFormats = ["dd/MM/yyyy", "dd/MM/yy", "dd/MM", "d/M"];
     const dateRegexes = [
@@ -502,7 +493,7 @@ export default function HomeScreen() {
     }
 
     // If no exact match, look for similar products
-    const similarProducts = findSimilarProducts(currentProduct.originalName, existingProducts);
+    const similarProducts = existingProducts.filter(p => calculateSimilarity(p.name, currentProduct.originalName) >= similarityThreshold);
 
     if (similarProducts.length > 0) {
       setCurrentImportItem({
@@ -649,13 +640,13 @@ export default function HomeScreen() {
 
       // Get all remaining products that have similar matches
       const productsToUpdate = currentImportItem.remainingProducts.filter(product => {
-        const similarProducts = findSimilarProducts(product.originalName, products);
+        const similarProducts = existingProducts.filter(p => calculateSimilarity(p.name, product.originalName) >= similarityThreshold);
         return similarProducts.length > 0;
       });
 
       // Update all products
       for (const product of productsToUpdate) {
-        const similarProducts = findSimilarProducts(product.originalName, products);
+        const similarProducts = existingProducts.filter(p => calculateSimilarity(p.name, product.originalName) >= similarityThreshold);
         if (similarProducts.length > 0) {
           const bestMatch = similarProducts[0];
           await updateProductQuantity(bestMatch.id, product.quantity);
@@ -664,7 +655,7 @@ export default function HomeScreen() {
 
       // Filter out the updated products and continue with the rest
       const remainingProducts = currentImportItem.remainingProducts.filter(product => {
-        const similarProducts = findSimilarProducts(product.originalName, products);
+        const similarProducts = existingProducts.filter(p => calculateSimilarity(p.name, product.originalName) >= similarityThreshold);
         return similarProducts.length === 0;
       });
 
@@ -919,6 +910,7 @@ export default function HomeScreen() {
                       }
                       keyboardType="numeric"
                       style={styles.input}
+
                     />
                   </View>
                   <View style={styles.quantityButtons}>
@@ -1076,7 +1068,8 @@ export default function HomeScreen() {
       padding: 16,
       borderRadius: 12,
       width: '100%',
-      maxHeight: '80%',
+      maxHeight: '90%',
+      minHeight: '70%',
       elevation: 5,
       shadowColor: "#000",
       shadowOffset: {
@@ -1175,6 +1168,7 @@ export default function HomeScreen() {
       justifyContent: 'space-between',
       gap: 12,
       flex: 1,
+      minHeight: 200,
     },
     productInfoColumn: {
       flex: 1,
@@ -1182,6 +1176,7 @@ export default function HomeScreen() {
     },
     similarProductsScroll: {
       flex: 1,
+      minHeight: 100,
     },
     similarProductItem: {
       marginBottom: 8,
@@ -1196,12 +1191,21 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <View style={styles.searchContainer}>
           <PaperTextInput
-            placeholder="Pesquisar"
+            placeholder="Buscar produtos..."
             value={searchQuery}
             onChangeText={setSearchQuery}
-            style={styles.searchInput}
             mode="outlined"
-            dense
+            style={styles.searchInput}
+            right={
+              searchQuery.trim() ? (
+                <PaperTextInput.Icon
+                  icon="close"
+                  size={24}
+                  onPress={() => setSearchQuery("")}
+                  color={theme.colors.error}
+                />
+              ) : undefined
+            }
           />
         </View>
         <View style={styles.buttonRow}>

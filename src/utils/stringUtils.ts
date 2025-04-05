@@ -1,5 +1,3 @@
-import { Product } from "../database/database";
-
 export const preprocessName = (name: string): string => {
   return name
     .toLowerCase()
@@ -30,17 +28,4 @@ const getPairs = (str: string): Set<string> => {
     pairs.add(str.slice(i, i + 2));
   }
   return pairs;
-};
-
-export const findSimilarProducts = (name: string, products: Product[], similarityThreshold: number = 0.8): Product[] => {
-  const processedTargetName = preprocessName(name);
-  
-  return products
-    .map(product => ({
-      product,
-      similarity: calculateSimilarity(processedTargetName, preprocessName(product.name))
-    }))
-    .filter(({ similarity }) => similarity >= similarityThreshold)
-    .sort((a, b) => b.similarity - a.similarity)
-    .map(({ product }) => product);
 };
