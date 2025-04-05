@@ -21,6 +21,7 @@ import {
 } from "../database/database";
 import { calculateSimilarity, preprocessName } from "../utils/similarityUtils";
 import { RootStackParamList } from "../types/navigation";
+import { createHomeScreenStyles } from "../styles/HomeScreenStyles";
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -54,18 +55,10 @@ type Styles = {
   productInfo: ViewStyle;
   existingProduct: ViewStyle;
   similarProducts: ViewStyle;
-  productLabel: TextStyle;
-  productValue: TextStyle;
-  modalButtonsContainer: ViewStyle;
-  stackedButton: ViewStyle;
-  actionButton: ViewStyle;
-  buttonLabelStyle: TextStyle;
-  skipButtonLabel: TextStyle;
-  cancelButtonLabel: TextStyle;
   productCompareContainer: ViewStyle;
   productInfoColumn: ViewStyle;
   similarProductsScroll: ViewStyle;
-  similarProductItem: ViewStyle;
+  similarProductItemContainer: ViewStyle;
   quantityText: TextStyle;
   dateText: TextStyle;
   similarProductsContainer: ViewStyle;
@@ -804,7 +797,7 @@ export default function HomeScreen() {
                     <Text style={styles.sectionTitle}>Outros Produtos Similares:</Text>
                     <ScrollView style={styles.similarProductsScroll} nestedScrollEnabled={true}>
                       {similarProducts.slice(1).map((product, index) => (
-                        <View key={index} style={styles.similarProductItem}>
+                        <View key={index} style={styles.similarProductItemContainer}>
                           <Text style={styles.productValue}>{product.name}</Text>
                           <Text style={styles.quantityText}>
                             Quantidade: {product.quantity}
@@ -818,19 +811,11 @@ export default function HomeScreen() {
               <View style={styles.buttonContainer}>
                 <Button
                   mode="contained"
-                  onPress={handleAcceptAllSimilar}
-                  style={[styles.stackedButton, styles.actionButton]}
-                  labelStyle={styles.buttonLabelStyle}
-                >
-                  Aceitar Todas as Sugestões
-                </Button>
-                <Button
-                  mode="contained"
                   onPress={handleUpdateQuantityOnly}
                   style={[styles.stackedButton, styles.actionButton]}
                   labelStyle={styles.buttonLabelStyle}
                 >
-                  {isNewerOrSameDate ? 'Atualizar Quantidade' : 'Adicionar ao Histórico'}
+                  Produtos iguais
                 </Button>
                 <Button
                   mode="contained"
@@ -838,7 +823,15 @@ export default function HomeScreen() {
                   style={[styles.stackedButton, styles.actionButton]}
                   labelStyle={styles.buttonLabelStyle}
                 >
-                  Criar Novo
+                  Produtos diferentes
+                </Button>
+                <Button
+                  mode="contained"
+                  onPress={handleAcceptAllSimilar}
+                  style={[styles.stackedButton, styles.actionButton]}
+                  labelStyle={styles.buttonLabelStyle}
+                >
+                  Aceitar Todas as Sugestões de Substituição
                 </Button>
                 <Button
                   mode="text"
@@ -978,237 +971,8 @@ export default function HomeScreen() {
     return similarity >= searchSimilarityThreshold;
   });
 
-  const styles = StyleSheet.create<Styles>({
-    container: {
-      flex: 1,
-      backgroundColor: "#f5f5f5",
-      paddingTop: 32,
-      paddingBottom: 32,
-    },
-    header: {
-      padding: 16,
-      backgroundColor: "#fff",
-      borderBottomWidth: 1,
-      borderBottomColor: "#e0e0e0",
-    },
-    searchContainer: {
-      marginBottom: 8,
-    },
-    searchInput: {
-      height: 40,
-      borderColor: "gray",
-      borderWidth: 1,
-      borderRadius: 5,
-      paddingHorizontal: 10,
-    },
-    buttonRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginTop: 16,
-    },
-    button: {
-      paddingVertical: 4,
-      paddingHorizontal: 8,
-      marginRight: 8,
-    },
-    buttonText: {
-      fontSize: 12,
-    },
-    list: { 
-      padding: 16, 
-      paddingBottom: 160 
-    },
-    card: { 
-      marginBottom: 16 
-    },
-    cardHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-    },
-    dragHandle: { 
-      flexDirection: "row", 
-      alignItems: "center" 
-    },
-    cardContent: { 
-      marginTop: 8 
-    },
-    quantityContainer: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 8,
-    },
-    quantityButtons: { 
-      flexDirection: "row" 
-    },
-    quantityInputContainer: {
-      flexDirection: "row",
-      alignItems: "center",
-      flex: 1,
-    },
-    input: { 
-      flex: 1, 
-      marginHorizontal: 8 
-    },
-    cardActions: { 
-      flexDirection: "row" 
-    },
-    fab: { 
-      position: "absolute", 
-      margin: 16, 
-      right: 0, 
-      bottom: 0 
-    },
-    modalOverlay: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      padding: 16,
-    },
-    modalContainer: {
-      backgroundColor: theme.colors.background,
-      padding: 20,
-      borderRadius: 12,
-      width: '100%',
-      minWidth: 320,
-      maxHeight: '100%',
-      elevation: 5,
-      shadowColor: "#000",
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-      shadowOpacity: 0.25,
-      shadowRadius: 4,
-    },
-    modalTitle: {
-      fontSize: 18,
-      fontWeight: "bold",
-      marginBottom: 12,
-      textAlign: "center",
-      color: "#333",
-    },
-    confirmationContent: {
-      marginBottom: 12,
-      minHeight: 120,
-      maxHeight: 300,
-    },
-    textInput: {
-      borderWidth: 1,
-      borderColor: "gray",
-      borderRadius: 8,
-      padding: 10,
-      marginBottom: 16,
-      backgroundColor: '#fff',
-    },
-    productInfo: {
-      padding: 8,
-      backgroundColor: "#f8f9fa",
-      borderRadius: 8,
-      marginBottom: 8,
-    },
-    existingProduct: {
-      backgroundColor: "#e9ecef",
-    },
-    similarProducts: {
-      marginTop: 8,
-      padding: 12,
-      backgroundColor: "#f8f9fa",
-      borderRadius: 8,
-    },
-    similarProductItem: {
-      fontSize: 14,
-      color: "#666",
-      marginTop: 4,
-      marginLeft: 8,
-    },
-    productLabel: {
-      fontSize: 12,
-      color: "#666",
-      marginBottom: 4,
-    },
-    productValue: {
-      fontSize: 14,
-      color: "#333",
-      fontWeight: "500",
-      marginBottom: 4,
-    },
-    quantityText: {
-      fontSize: 12,
-      color: "#666",
-    },
-    dateText: {
-      fontSize: 12,
-      color: '#666',
-      marginTop: 4,
-    },
-    modalButtonsContainer: {
-      gap: 4,
-      paddingTop: 8,
-      borderTopWidth: 1,
-      borderTopColor: '#eee',
-    },
-    stackedButton: {
-      borderRadius: 8,
-      height: 40,
-      justifyContent: 'center',
-    },
-    actionButton: {
-      marginBottom: 4,
-    },
-    buttonLabelStyle: {
-      fontSize: 13,
-    },
-    skipButtonLabel: {
-      color: "#666",
-    },
-    cancelButtonLabel: {
-      color: "#dc3545",
-    },
-    productCompareContainer: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      gap: 12,
-      flex: 1,
-      minHeight: 100,
-    },
-    productInfoColumn: {
-      flex: 1,
-      minHeight: 100,
-    },
-    similarProductsScroll: {
-      maxHeight: 150,
-      marginTop: 8,
-    },
-    similarProductItem: {
-      padding: 10,
-      borderRadius: 8,
-      backgroundColor: '#f5f5f5',
-      marginBottom: 8,
-    },
-    similarProductsContainer: {
-      marginTop: 16,
-      borderTopWidth: 1,
-      borderTopColor: '#e0e0e0',
-      paddingTop: 16,
-      width: '100%',
-      height: 196,
-    },
-    buttonContainer: {
-      gap: 10,
-      marginTop: 96,
-      height: 256,
-    },
-    sectionTitle: {
-      fontSize: 14,
-      fontWeight: 'bold',
-      color: '#333',
-      marginBottom: 8,
-    },
-  });
-
+  const styles = createHomeScreenStyles(theme);
+  
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
