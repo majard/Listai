@@ -123,9 +123,6 @@ export default function HomeScreen() {
   const [isImportModalVisible, setIsImportModalVisible] = useState(false);
   const [importText, setImportText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [quantityTimeout, setQuantityTimeout] = useState<NodeJS.Timeout | null>(
-    null
-  );
   const [confirmationModalVisible, setConfirmationModalVisible] = useState(false);
   const [currentImportItem, setCurrentImportItem] = useState<{
     importedProduct: { originalName: string; quantity: number };
@@ -239,7 +236,12 @@ export default function HomeScreen() {
                 const newQuantity = adjustmentIncrement
                   ? product.quantity + 1
                   : Math.max(0, product.quantity - 1);
-                updateProduct(adjustmentId, newQuantity).catch(console.error);
+                
+                // Update product in database after UI update
+                setTimeout(() => {
+                  updateProduct(adjustmentId, newQuantity).catch(console.error);
+                }, 0);
+                
                 return { ...product, quantity: newQuantity };
               }
               return product;
@@ -276,54 +278,46 @@ export default function HomeScreen() {
     );
   };
 
-  const handleQuantityInput = async (id: number, value: string) => {
-    try {
-      // Clear the previous timeout if it exists
-      if (quantityTimeout) {
-        clearTimeout(quantityTimeout);
-      }
-
-      if (value === "") {
-        // Set a timeout to update to 0 after 200ms
-        const timeoutId = setTimeout(async () => {
-          await updateProduct(id, 0); // Update to 0 after the delay
-          loadProducts(); // Reload products to reflect changes
-        }, 200);
-        setQuantityTimeout(timeoutId); // Store the timeout ID
-        return;
-      }
-
-      const newQuantity = parseInt(value, 10);
-      if (!isNaN(newQuantity) && newQuantity >= 0) {
-        await updateProduct(id, newQuantity); // Update the product with the new quantity
-        loadProducts(); // Reload products to reflect changes
-      }
-    } catch (error) {
-      console.error("Erro ao atualizar quantidade:", error);
-    }
+  const handleQuantityInput = (id: number, value: string) => {
+    // Update UI immediately
+    setProducts(prevProducts =>
+      prevProducts.map(product => {
+        if (product.id === id) {
+          const newQuantity = value === "" ? 0 : parseInt(value, 10);
+          if (!isNaN(newQuantity) && newQuantity >= 0) {
+            // Schedule database update with minimal delay
+            setTimeout(() => {
+              updateProduct(id, newQuantity).catch(error => 
+                console.error("Erro ao atualizar quantidade:", error)
+              );
+            }, 200);
+            
+            return { ...product, quantity: newQuantity };
+          }
+        }
+        return product;
+      })
+    );
   };
 
-  // Use debounce for the quantity input handler
-  const debouncedHandleQuantityInput = debounce(handleQuantityInput, 300);
-
-  const handleQuantityChange = async (
-    id: number,
-    currentQuantity: number,
-    increment: boolean
-  ) => {
-    try {
-      const newQuantity = increment
-        ? currentQuantity + 1
-        : Math.max(0, currentQuantity - 1);
-      await updateProduct(id, newQuantity);
-      setProducts((prevProducts) =>
-        prevProducts.map((product) =>
-          product.id === id ? { ...product, quantity: newQuantity } : product
-        )
+  const handleQuantityChange = (id: number, currentQuantity: number, increment: boolean) => {
+    const newQuantity = increment
+      ? currentQuantity + 1
+      : Math.max(0, currentQuantity - 1);
+    
+    // Update UI immediately
+    setProducts(prevProducts =>
+      prevProducts.map(product =>
+        product.id === id ? { ...product, quantity: newQuantity } : product
+      )
+    );
+    
+    // Schedule database update with minimal delay
+    setTimeout(() => {
+      updateProduct(id, newQuantity).catch(error => 
+        console.error("Erro ao atualizar quantidade:", error)
       );
-    } catch (error) {
-      console.error("Erro ao atualizar quantidade:", error);
-    }
+    }, 200);
   };
 
   const startContinuousAdjustment = (
@@ -916,12 +910,9 @@ export default function HomeScreen() {
                       mode="outlined"
                       dense
                       value={item.quantity.toString()}
-                      onChangeText={(value) =>
-                        debouncedHandleQuantityInput(item.id, value)
-                      }
+                      onChangeText={(value) => handleQuantityInput(item.id, value)}
                       keyboardType="numeric"
                       style={styles.input}
-
                     />
                   </View>
                   <View style={styles.quantityButtons}>
