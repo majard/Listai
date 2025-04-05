@@ -1,31 +1,17 @@
-export const preprocessName = (name: string): string => {
-  return name
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9\s]/g, '')
-    .trim();
-};
 
-export const calculateSimilarity = (str1: string, str2: string): number => {
-  const s1 = preprocessName(str1);
-  const s2 = preprocessName(str2);
-
-  if (s1 === s2) return 1;
-  if (s1.length === 0 || s2.length === 0) return 0;
-
-  const pairs1 = getPairs(s1);
-  const pairs2 = getPairs(s2);
-  const union = pairs1.size + pairs2.size;
-  const intersection = new Set([...pairs1].filter(x => pairs2.has(x))).size;
-
-  return (2.0 * intersection) / union;
-};
-
-const getPairs = (str: string): Set<string> => {
-  const pairs = new Set<string>();
-  for (let i = 0; i < str.length - 1; i++) {
-    pairs.add(str.slice(i, i + 2));
-  }
-  return pairs;
-};
+export const getEmojiForProduct = (name: string): string => {
+    const nameLower = name.toLowerCase();
+    if (nameLower.includes("batata")) return "🥔";
+    if (nameLower.includes("abóbora")) return "🎃";
+    if (nameLower.includes("brócolis")) return "🥦";
+    if (nameLower.includes("arroz")) return "🍚";
+    if (nameLower.includes("risoto")) return "🍝";
+    if (nameLower.includes("milho")) return "🌽";
+    if (nameLower.includes("picadinho")) return "🍖";
+    if (nameLower.includes("tropical")) return "🌴";
+    if (nameLower.includes("panqueca")) return "🥞";
+    if (nameLower.includes("waffle")) return "🧇";
+    if (nameLower.includes("pão")) return "🍞";
+    if (nameLower.includes("macarrão")) return "🍝";
+    return "🍽️";
+  };

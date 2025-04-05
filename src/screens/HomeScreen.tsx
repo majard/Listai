@@ -22,6 +22,7 @@ import {
 import { calculateSimilarity, preprocessName } from "../utils/similarityUtils";
 import { RootStackParamList } from "../types/navigation";
 import { createHomeScreenStyles } from "../styles/HomeScreenStyles";
+import { getEmojiForProduct } from "../utils/stringUtils";
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -64,23 +65,6 @@ type Styles = {
   similarProductsContainer: ViewStyle;
   buttonContainer: ViewStyle;
   sectionTitle: TextStyle;
-};
-
-const getEmojiForProduct = (name: string): string => {
-  const nameLower = name.toLowerCase();
-  if (nameLower.includes("batata")) return "🥔";
-  if (nameLower.includes("abóbora")) return "🎃";
-  if (nameLower.includes("brócolis")) return "🥦";
-  if (nameLower.includes("arroz")) return "🍚";
-  if (nameLower.includes("risoto")) return "🍝";
-  if (nameLower.includes("milho")) return "🌽";
-  if (nameLower.includes("picadinho")) return "🍖";
-  if (nameLower.includes("tropical")) return "🌴";
-  if (nameLower.includes("panqueca")) return "🥞";
-  if (nameLower.includes("waffle")) return "🧇";
-  if (nameLower.includes("pão")) return "🍞";
-  if (nameLower.includes("macarrão")) return "🍝";
-  return "🍽️";
 };
 
 const similarityThreshold = 0.5; // Define your similarity threshold
@@ -431,11 +415,13 @@ export default function HomeScreen() {
         const quantity = parseInt(numbers[0], 10);
         if (isNaN(quantity) || quantity <= 0) return null;
 
+
         // Remove the quantity and any special characters to get the product name
         const nameWithoutQuantity = line.replace(numbers[0], '');
-        // Clean the name: remove special characters but keep spaces between words
+        // Clean the name: remove special characters, emojis, but keep spaces between words
         const cleanedName = nameWithoutQuantity
           .replace(/[-\/:_,;]/g, ' ') // Replace separators with spaces
+          .replace(/[\u{1F600}-\u{1F64F}|\u{1F300}-\u{1F5FF}|\u{1F680}-\u{1F6FF}|\u{1F700}-\u{1F77F}|\u{1F780}-\u{1F7FF}|\u{1F800}-\u{1F8FF}|\u{1F900}-\u{1F9FF}|\u{1FA00}-\u{1FAFF}|\u{2600}-\u{26FF}|\u{2700}-\u{27BF}]/gu, '') // Remove emojis
           .replace(/\s+/g, ' ')       // Replace multiple spaces with single space
           .trim();                    // Remove leading/trailing spaces
 
@@ -768,7 +754,7 @@ export default function HomeScreen() {
         <View style={styles.modalOverlay}>
           <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
             <View style={styles.modalContainer}>
-              <Text style={styles.modalTitle}>Produto Similar Encontrado</Text>
+              <Text style={styles.modalTitle}>Produtos de Nomes Parecidos</Text>
               <View style={styles.confirmationContent}>
                 <View style={styles.productCompareContainer}>
                   <View style={styles.productInfoColumn}>
@@ -878,7 +864,7 @@ export default function HomeScreen() {
             <Card.Content>
               <View style={styles.cardHeader}>
                 <View style={styles.dragHandle}>
-                  <Text variant="titleMedium">{item.name}</Text>
+                  <Text variant="titleMedium">{item.name +" "+ getEmojiForProduct(item.name)}</Text>
                 </View>
                 <View style={styles.cardActions}>
                   <IconButton
