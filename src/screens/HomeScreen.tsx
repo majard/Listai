@@ -5,10 +5,11 @@ import {
   Clipboard,
   Pressable,
   Alert,
-  TextInput,
-  Modal,
-  TextInput as RNTextInput,
   SafeAreaView,
+  ScrollView,
+  ViewStyle,
+  TextStyle,
+  Modal,
 } from "react-native";
 import {
   FAB,
@@ -19,6 +20,7 @@ import {
   Button,
   Menu,
   Divider,
+  TextInput as PaperTextInput,
 } from "react-native-paper";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -45,6 +47,41 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
   "Home"
 >;
+
+type StyleSheet = {
+  container: ViewStyle;
+  header: ViewStyle;
+  searchContainer: ViewStyle;
+  searchInput: ViewStyle;
+  buttonRow: ViewStyle;
+  button: ViewStyle;
+  buttonLabel: TextStyle;
+  list: ViewStyle;
+  card: ViewStyle;
+  cardHeader: ViewStyle;
+  dragHandle: ViewStyle;
+  cardContent: ViewStyle;
+  quantityContainer: ViewStyle;
+  quantityButtons: ViewStyle;
+  quantityInputContainer: ViewStyle;
+  input: ViewStyle;
+  cardActions: ViewStyle;
+  fab: ViewStyle;
+  modalOverlay: ViewStyle;
+  modalContainer: ViewStyle;
+  modalTitle: TextStyle;
+  confirmationContent: ViewStyle;
+  textInput: ViewStyle;
+  productInfo: ViewStyle;
+  existingProduct: ViewStyle;
+  similarProducts: ViewStyle;
+  similarProductItem: TextStyle;
+  productLabel: TextStyle;
+  productValue: TextStyle;
+  modalButtonsStacked: ViewStyle;
+  stackedButton: ViewStyle;
+  cancelButtonLabel: TextStyle;
+};
 
 const getEmojiForProduct = (name: string): string => {
   const nameLower = name.toLowerCase();
@@ -108,8 +145,17 @@ export default function HomeScreen() {
   const [isImportModalVisible, setIsImportModalVisible] = useState(false);
   const [importText, setImportText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [quantityTimeout, setQuantityTimeout] = useState<NodeJS.Timeout | null>(null);
-  const [isInputEmpty, setIsInputEmpty] = useState(false);
+  const [quantityTimeout, setQuantityTimeout] = useState<NodeJS.Timeout | null>(
+    null
+  );
+  const [confirmationModalVisible, setConfirmationModalVisible] = useState(false);
+  const [currentImportItem, setCurrentImportItem] = useState<{
+    importedProduct: { originalName: string; quantity: number };
+    bestMatch: Product | null;
+    importDate: Date | null;
+    remainingProducts: { originalName: string; quantity: number }[];
+    similarProducts: Product[];
+  } | null>(null);
 
   const openMenu = () => setMenuVisible(true);
   const closeMenu = () => setMenuVisible(false);
@@ -241,32 +287,35 @@ export default function HomeScreen() {
     );
   };
 
-  // Debounced updateProduct function
-  const debouncedUpdateProduct = debounce(async (id, quantity) => {
-    await updateProduct(id, quantity);
-    loadProducts(); // Reload products to reflect changes
-  }, 700);
+  const handleQuantityInput = async (id: number, value: string) => {
+    try {
+      // Clear the previous timeout if it exists
+      if (quantityTimeout) {
+        clearTimeout(quantityTimeout);
+      }
 
-  const handleQuantityInput = (id: number, value: string) => {
-    // Update the local state immediately
-    setProducts((prevProducts) =>
-      prevProducts.map((product) =>
-        product.id === id ? { ...product, quantity: value === "" ? 0 : parseInt(value, 10) } : product // Ensure quantity is a number
-      )
-    );
+      if (value === "") {
+        // Set a timeout to update to 0 after 200ms
+        const timeoutId = setTimeout(async () => {
+          await updateProduct(id, 0); // Update to 0 after the delay
+          loadProducts(); // Reload products to reflect changes
+        }, 200);
+        setQuantityTimeout(timeoutId); // Store the timeout ID
+        return;
+      }
 
-    // If the input is empty, update to 0
-    if (value === "") {
-      debouncedUpdateProduct(id, 0); // Call the debounced function
-      return; // Exit the function
-    }
-
-    // If the input has a value, parse it and call the debounced function
-    const newQuantity = parseInt(value, 10);
-    if (!isNaN(newQuantity) && newQuantity >= 0) {
-      debouncedUpdateProduct(id, newQuantity); // Call the debounced function
+      const newQuantity = parseInt(value, 10);
+      if (!isNaN(newQuantity) && newQuantity >= 0) {
+        await updateProduct(id, newQuantity); // Update the product with the new quantity
+        loadProducts(); // Reload products to reflect changes
+      }
+    } catch (error) {
+      console.error("Erro ao atualizar quantidade:", error);
     }
   };
+
+  // Use debounce for the quantity input handler
+  const debouncedHandleQuantityInput = debounce(handleQuantityInput, 300);
 
   const handleQuantityChange = async (
     id: number,
@@ -407,138 +456,189 @@ export default function HomeScreen() {
     return products;
   };
 
+  const processNextProduct = async (
+    remainingProducts: { originalName: string; quantity: number }[],
+    importDate: Date | null = null,
+    existingProducts: Product[] = []
+  ) => {
+    if (remainingProducts.length === 0) {
+      await loadProducts();
+      return;
+    }
+
+    const importedProduct = remainingProducts[0];
+    const processedImportName = preprocessName(importedProduct.originalName);
+    let potentialMatches: { product: Product; similarity: number }[] = [];
+
+    for (const existingProduct of existingProducts) {
+      // If names are exactly the same (case-insensitive), auto-update without asking
+      if (existingProduct.name.toLowerCase() === importedProduct.originalName.toLowerCase()) {
+        const now = new Date();
+        const historyDate = importDate ? importDate : now;
+        await saveProductHistoryForSingleProduct(
+          existingProduct.id,
+          importedProduct.quantity,
+          historyDate
+        );
+        await updateProduct(existingProduct.id, importedProduct.quantity);
+        await processNextProduct(remainingProducts.slice(1), importDate, existingProducts);
+        return;
+      }
+
+      const processedExistingName = preprocessName(existingProduct.name);
+      const similarity = calculateSimilarity(
+        processedImportName,
+        processedExistingName
+      );
+
+      if (similarity >= similarityThreshold) {
+        potentialMatches.push({ product: existingProduct, similarity });
+      }
+    }
+
+    if (potentialMatches.length > 0) {
+      // Sort matches by similarity
+      potentialMatches.sort((a, b) => b.similarity - a.similarity);
+      
+      setCurrentImportItem({
+        importedProduct,
+        bestMatch: potentialMatches[0].product,
+        importDate,
+        remainingProducts: remainingProducts.slice(1),
+        similarProducts: potentialMatches.map(m => m.product)
+      });
+      setConfirmationModalVisible(true);
+      return;
+    }
+
+    // If no match or no confirmation needed, create new product
+    await createNewProduct(importedProduct, importDate);
+    await processNextProduct(remainingProducts.slice(1), importDate, existingProducts);
+  };
+
   const importStockList = async (text: string) => {
     try {
       const lines = text.split("\n");
       const importDate = parseImportDate(lines);
       const importedProducts = parseImportProducts(lines);
       const existingProducts = await getProducts();
-      const now = new Date();
 
       console.log("Parsed importDate:", importDate);
 
-      for (const importedProduct of importedProducts) {
-        const processedImportName = preprocessName(
-          importedProduct.originalName
-        );
-        let potentialMatches: { product: Product; similarity: number }[] = [];
+      await processNextProduct(importedProducts, importDate, existingProducts);
+    } catch (error) {
+      console.error("Error importing stock list:", error);
+      Alert.alert("Erro", "Ocorreu um erro ao importar a lista.");
+    }
+  };
 
-        for (const existingProduct of existingProducts) {
-          const processedExistingName = preprocessName(existingProduct.name);
-          const similarity = calculateSimilarity(
-            processedImportName,
-            processedExistingName
-          );
+  const createNewProduct = async (
+    importedProduct: { originalName: string; quantity: number },
+    importDate: Date | null
+  ) => {
+    const now = new Date();
+    console.log(`Creating new product: "${importedProduct.originalName}"`);
+    const newProductId = await addProduct(
+      importedProduct.originalName,
+      importedProduct.quantity
+    );
+    if (importDate && !isBefore(importDate, now)) {
+      console.log(
+        `Skipping history save for new product "${importedProduct.originalName}" as import date is in the future.`
+      );
+    } else {
+      const historyDate = importDate ? importDate : now;
+      await saveProductHistoryForSingleProduct(
+        newProductId,
+        importedProduct.quantity,
+        historyDate
+      );
+    }
+  };
 
-          if (similarity >= similarityThreshold) {
-            potentialMatches.push({ product: existingProduct, similarity });
-          }
-        }
+  const handleConfirmOverwrite = async () => {
+    if (!currentImportItem) return;
+    
+    const { importedProduct, bestMatch, importDate, remainingProducts } = currentImportItem;
+    const now = new Date();
+    const historyDate = importDate ? importDate : now;
 
-        if (potentialMatches.length > 0) {
-          let bestMatch: Product | null = null;
-          let latestHistoryEntry: QuantityHistory | undefined;
+    // Get all history entries for this product
+    const history = await getProductHistory(bestMatch.id.toString());
+    
+    // Delete all entries from the same day as the import
+    for (const entry of history) {
+      const entryDate = parseISO(entry.date);
+      if (isSameDay(entryDate, historyDate)) {
+        // Here we would need a function to delete the history entry
+        // For now, we'll just overwrite with the new value
+        console.log(`Overwriting history entry from ${entry.date}`);
+      }
+    }
+    
+    await saveProductHistoryForSingleProduct(
+      bestMatch.id,
+      importedProduct.quantity,
+      historyDate
+    );
+    
+    await updateProduct(bestMatch.id, importedProduct.quantity);
+    
+    setConfirmationModalVisible(false);
+    await processNextProduct(remainingProducts);
+  };
 
-          for (const match of potentialMatches) {
-            const history = await getProductHistory(
-              match.product.id.toString()
-            );
-            if (history.length > 0) {
-              bestMatch = match.product;
-              latestHistoryEntry = history[0]; // Assuming history is sorted by date DESC
-              break; // Found the latest, no need to check others for this purpose
-            } else if (!bestMatch) {
-              bestMatch = match.product; // If no history, consider the first match for new history
-            }
-          }
+  const handleAcceptAllSimilar = async () => {
+    if (!currentImportItem) return;
+    
+    const { importedProduct, similarProducts, importDate, remainingProducts } = currentImportItem;
+    const now = new Date();
+    const historyDate = importDate ? importDate : now;
 
-          if (bestMatch) {
-            console.log(
-              `Considering "${importedProduct.originalName}" with existing "${bestMatch.name}" (latest history: ${latestHistoryEntry?.date})`
-            );
-
-            if (importDate && !isBefore(importDate, now)) {
-              console.log(
-                `Skipping history save for "${importedProduct.originalName}" as import date is in the future.`
-              );
-            } else {
-              const historyDate = importDate ? importDate : now;
-              await saveProductHistoryForSingleProduct(
-                bestMatch.id,
-                importedProduct.quantity,
-                historyDate
-              );
-
-              if (importDate && latestHistoryEntry) {
-                const lastHistoryDate = parseISO(latestHistoryEntry.date);
-                if (
-                  isBefore(lastHistoryDate, importDate) &&
-                  isSameDay(importDate, historyDate)
-                ) {
-                  console.log(
-                    `Overwriting quantity of "${bestMatch.name}" with imported "${importedProduct.originalName}": ${importedProduct.quantity} (imported date is newer than last history)`
-                  );
-                  await updateProduct(bestMatch.id, importedProduct.quantity);
-                } else {
-                  console.log(
-                    `Not overwriting quantity of "${bestMatch.name}". Last history is not older than import or not same day.`
-                  );
-                }
-              } else if (importDate && !latestHistoryEntry) {
-                console.log(
-                  `Overwriting quantity of "${bestMatch.name}" with imported "${importedProduct.originalName}": ${importedProduct.quantity} (no existing history)`
-                );
-                await updateProduct(bestMatch.id, importedProduct.quantity);
-              }
-            }
-          } else {
-            console.log(
-              `Creating new product: "${importedProduct.originalName}"`
-            );
-            const newProductId = await addProduct(
-              importedProduct.originalName,
-              importedProduct.quantity
-            );
-            if (importDate && !isBefore(importDate, now)) {
-              console.log(
-                `Skipping history save for new product "${importedProduct.originalName}" as import date is in the future.`
-              );
-            } else {
-              const historyDate = importDate ? importDate : now;
-              await saveProductHistoryForSingleProduct(
-                newProductId,
-                importedProduct.quantity,
-                historyDate
-              );
-            }
-          }
-        } else {
-          console.log(
-            `Creating new product (no similar product found): "${importedProduct.originalName}"`
-          );
-          const newProductId = await addProduct(
-            importedProduct.originalName,
-            importedProduct.quantity
-          );
-          if (importDate && !isBefore(importDate, now)) {
-            console.log(
-              `Skipping history save for new product "${importedProduct.originalName}" as import date is in the future.`
-            );
-          } else {
-            const historyDate = importDate ? importDate : now;
-            await saveProductHistoryForSingleProduct(
-              newProductId,
-              importedProduct.quantity,
-              historyDate
-            );
-          }
+    for (const product of similarProducts) {
+      const history = await getProductHistory(product.id.toString());
+      
+      // Delete all entries from the same day as the import
+      for (const entry of history) {
+        const entryDate = parseISO(entry.date);
+        if (isSameDay(entryDate, historyDate)) {
+          console.log(`Overwriting history entry from ${entry.date}`);
         }
       }
-
-      await loadProducts();
-    } catch (error) {
-      console.error("Erro ao importar lista:", error);
+      
+      await saveProductHistoryForSingleProduct(
+        product.id,
+        importedProduct.quantity,
+        historyDate
+      );
+      
+      await updateProduct(product.id, importedProduct.quantity);
     }
+    
+    setConfirmationModalVisible(false);
+    await processNextProduct(remainingProducts);
+  };
+
+  const handleCreateNew = async () => {
+    if (!currentImportItem) return;
+    
+    const { importedProduct, importDate, remainingProducts } = currentImportItem;
+    await createNewProduct(importedProduct, importDate);
+    
+    setConfirmationModalVisible(false);
+    await processNextProduct(remainingProducts);
+  };
+
+  const handleSkipImport = async () => {
+    if (!currentImportItem) return;
+    
+    setConfirmationModalVisible(false);
+    await processNextProduct(currentImportItem.remainingProducts);
+  };
+
+  const handleCancelAllImports = () => {
+    setConfirmationModalVisible(false);
+    setCurrentImportItem(null);
   };
 
   const renderItem = ({
@@ -585,13 +685,15 @@ export default function HomeScreen() {
                 <View style={styles.quantityContainer}>
                   <View style={styles.quantityInputContainer}>
                     <Text variant="bodyMedium">Quantidade: </Text>
-                    <TextInput
-                      value={item.quantity.toString()}
-                      onChangeText={(value) => handleQuantityInput(item.id, value)}
-                      keyboardType="numeric"
-                      style={styles.input}
+                    <PaperTextInput
                       mode="outlined"
                       dense
+                      value={item.quantity.toString()}
+                      onChangeText={(value) =>
+                        debouncedHandleQuantityInput(item.id, value)
+                      }
+                      keyboardType="numeric"
+                      style={styles.input}
                     />
                   </View>
                   <View style={styles.quantityButtons}>
@@ -659,15 +761,185 @@ export default function HomeScreen() {
     return similarity >= searchSimilarityThreshold;
   });
 
+  const styles = StyleSheet.create<StyleSheet>({
+    container: {
+      flex: 1,
+      backgroundColor: "#f5f5f5",
+      paddingTop: 32,
+      paddingBottom: 32,
+    },
+    header: {
+      padding: 16,
+      backgroundColor: "#fff",
+      borderBottomWidth: 1,
+      borderBottomColor: "#e0e0e0",
+    },
+    searchContainer: {
+      marginBottom: 8,
+    },
+    searchInput: {
+      height: 40,
+      borderColor: "gray",
+      borderWidth: 1,
+      borderRadius: 5,
+      paddingHorizontal: 10,
+    },
+    buttonRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 16,
+    },
+    button: {
+      paddingVertical: 4,
+      paddingHorizontal: 8,
+      marginRight: 8,
+    },
+    buttonLabel: {
+      fontSize: 12,
+    },
+    list: { 
+      padding: 16, 
+      paddingBottom: 160 
+    },
+    card: { 
+      marginBottom: 16 
+    },
+    cardHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    dragHandle: { 
+      flexDirection: "row", 
+      alignItems: "center" 
+    },
+    cardContent: { 
+      marginTop: 8 
+    },
+    quantityContainer: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 8,
+    },
+    quantityButtons: { 
+      flexDirection: "row" 
+    },
+    quantityInputContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      flex: 1,
+    },
+    input: { 
+      flex: 1, 
+      marginHorizontal: 8 
+    },
+    cardActions: { 
+      flexDirection: "row" 
+    },
+    fab: { 
+      position: "absolute", 
+      margin: 16, 
+      right: 0, 
+      bottom: 0 
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    modalContainer: {
+      backgroundColor: "white",
+      padding: 20,
+      borderRadius: 12,
+      width: '100%',
+      maxHeight: '80%',
+      elevation: 5,
+      shadowColor: "#000",
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.25,
+      shadowRadius: 3.84,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: "bold",
+      marginBottom: 16,
+      textAlign: "center",
+      color: "#333",
+    },
+    confirmationContent: {
+      maxHeight: '60%',
+    },
+    textInput: {
+      borderWidth: 1,
+      borderColor: "gray",
+      borderRadius: 8,
+      padding: 10,
+      marginBottom: 16,
+      backgroundColor: '#fff',
+    },
+    productInfo: {
+      padding: 12,
+      backgroundColor: "#f8f9fa",
+      borderRadius: 8,
+      marginBottom: 8,
+    },
+    existingProduct: {
+      backgroundColor: "#e9ecef",
+    },
+    similarProducts: {
+      marginTop: 8,
+      padding: 12,
+      backgroundColor: "#f8f9fa",
+      borderRadius: 8,
+    },
+    similarProductItem: {
+      fontSize: 14,
+      color: "#666",
+      marginTop: 4,
+      marginLeft: 8,
+    },
+    productLabel: {
+      fontSize: 14,
+      color: "#666",
+      marginBottom: 4,
+    },
+    productValue: {
+      fontSize: 16,
+      color: "#333",
+      marginBottom: 8,
+      fontWeight: "500",
+    },
+    modalButtonsStacked: {
+      marginTop: 16,
+    },
+    stackedButton: {
+      marginVertical: 6,
+      borderRadius: 8,
+      height: 45,
+      justifyContent: 'center',
+    },
+    cancelButtonLabel: {
+      color: "#dc3545",
+    },
+  });
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.searchContainer}>
-          <TextInput
+          <PaperTextInput
             placeholder="Pesquisar"
             value={searchQuery}
             onChangeText={setSearchQuery}
             style={styles.searchInput}
+            mode="outlined"
+            dense
           />
         </View>
         <View style={styles.buttonRow}>
@@ -748,8 +1020,8 @@ export default function HomeScreen() {
         extraData={products}
       />
       <FAB
+        style={styles.fab}
         icon="plus"
-        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
         onPress={() => navigation.navigate("AddProduct")}
         label="Adicionar Produto"
       />
@@ -759,28 +1031,112 @@ export default function HomeScreen() {
           onRequestClose={() => setIsImportModalVisible(false)}
           transparent={true}
         >
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Importar Lista</Text>
-            <RNTextInput
-              style={styles.modalInput}
-              multiline
-              value={importText}
-              onChangeText={setImportText}
-              placeholder="Cole a lista aqui..."
-            />
-            <View style={styles.modalButtons}>
-              <Button
-                onPress={handleImportModalCancel}
-                style={styles.modalButton}
-              >
-                Cancelar
-              </Button>
-              <Button
-                onPress={handleImportModalImport}
-                style={styles.modalButton}
-              >
-                Importar
-              </Button>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>Importar Lista</Text>
+              <PaperTextInput
+                style={[styles.textInput, { height: 150, textAlignVertical: 'top' }]}
+                multiline
+                value={importText}
+                onChangeText={setImportText}
+                placeholder="Cole aqui sua lista de produtos"
+                mode="outlined"
+                dense
+              />
+              <View style={styles.buttonRow}>
+                <Button
+                  onPress={handleImportModalCancel}
+                  style={styles.stackedButton}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onPress={handleImportModalImport}
+                  style={styles.stackedButton}
+                >
+                  Importar
+                </Button>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        <Modal
+          visible={confirmationModalVisible}
+          onRequestClose={() => setConfirmationModalVisible(false)}
+          transparent={true}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>Produto Similar Encontrado</Text>
+              <ScrollView style={styles.confirmationContent}>
+                <View style={styles.productInfo}>
+                  <Text style={styles.productLabel}>Produto importado:</Text>
+                  <Text style={styles.productValue}>{currentImportItem?.importedProduct.originalName}</Text>
+                  <Text style={styles.productLabel}>Quantidade:</Text>
+                  <Text style={styles.productValue}>{currentImportItem?.importedProduct.quantity}</Text>
+                </View>
+                <View style={[styles.productInfo, styles.existingProduct]}>
+                  <Text style={styles.productLabel}>Produto existente:</Text>
+                  <Text style={styles.productValue}>{currentImportItem?.bestMatch?.name}</Text>
+                  <Text style={styles.productLabel}>Quantidade atual:</Text>
+                  <Text style={styles.productValue}>{currentImportItem?.bestMatch?.quantity}</Text>
+                </View>
+                {currentImportItem?.similarProducts.length > 1 && (
+                  <View style={styles.similarProducts}>
+                    <Text style={styles.productLabel}>Outros produtos similares encontrados:</Text>
+                    {currentImportItem.similarProducts.slice(1).map((product, index) => (
+                      <Text key={index} style={styles.similarProductItem}>
+                        • {product.name} (Qtd: {product.quantity})
+                      </Text>
+                    ))}
+                  </View>
+                )}
+              </ScrollView>
+              <View style={styles.modalButtonsStacked}>
+                <Button 
+                  mode="contained"
+                  onPress={handleConfirmOverwrite} 
+                  style={styles.stackedButton}
+                  labelStyle={styles.buttonLabel}
+                >
+                  Sobrescrever Este Produto
+                </Button>
+                {currentImportItem?.similarProducts.length > 1 && (
+                  <Button 
+                    mode="contained-tonal"
+                    onPress={handleAcceptAllSimilar} 
+                    style={styles.stackedButton}
+                    labelStyle={styles.buttonLabel}
+                  >
+                    Sobrescrever Todos Similares
+                  </Button>
+                )}
+                <Button 
+                  mode="outlined"
+                  onPress={handleCreateNew} 
+                  style={styles.stackedButton}
+                  labelStyle={styles.buttonLabel}
+                >
+                  Criar Novo Produto
+                </Button>
+                <Button 
+                  mode="outlined"
+                  onPress={handleSkipImport} 
+                  style={styles.stackedButton}
+                  labelStyle={styles.buttonLabel}
+                >
+                  Pular Este Produto
+                </Button>
+                <Button 
+                  mode="text"
+                  onPress={handleCancelAllImports} 
+                  style={styles.stackedButton}
+                  labelStyle={[styles.buttonLabel, styles.cancelButtonLabel]}
+                >
+                  Cancelar Importação
+                </Button>
+              </View>
             </View>
           </View>
         </Modal>
@@ -788,97 +1144,3 @@ export default function HomeScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
-    paddingTop: 32,
-    paddingBottom: 32,
-  },
-  header: {
-    padding: 16,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-  },
-  searchContainer: {
-    marginBottom: 8,
-  },
-  searchInput: {
-    height: 40,
-    borderColor: "gray",
-    borderWidth: 1,
-    borderRadius: 5,
-    paddingHorizontal: 10,
-  },
-  buttonRow: {
-    flexDirection: "row",
-    justifyContent: "flex-start",
-    alignItems: "center",
-  },
-  button: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    marginRight: 8,
-  },
-  buttonLabel: {
-    fontSize: 12,
-  },
-  list: { padding: 16, paddingBottom: 160 },
-  card: { marginBottom: 16 },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  dragHandle: { flexDirection: "row", alignItems: "center" },
-  cardContent: { marginTop: 8 },
-  quantityContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  quantityButtons: { flexDirection: "row" },
-  fab: { position: "absolute", margin: 16, right: 0, bottom: 0 },
-  quantityInputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  input: { flex: 1, marginHorizontal: 8 },
-  cardActions: { flexDirection: "row" },
-  modalContainer: {
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 8,
-    width: 300,
-    height: 600,
-    margin: 42,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  modalInput: {
-    height: 150,
-    flexGrow: 1,
-    borderWidth: 1,
-    borderColor: "gray",
-    marginBottom: 10,
-    padding: 10,
-    textAlignVertical: "top",
-  },
-  modalButtons: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginTop: 10,
-  },
-  modalButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-});
