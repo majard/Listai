@@ -490,7 +490,9 @@ export default function HomeScreen() {
     }
 
     // If no exact match, look for similar products
-    const similarProducts = existingProducts.filter(p => calculateSimilarity(p.name, currentProduct.originalName) >= similarityThreshold);
+    const similarProducts = existingProducts
+    .filter(p => calculateSimilarity(p.name, currentProduct.originalName) >= similarityThreshold)
+    .sort((product1, product2 ) => calculateSimilarity(product2.name, currentProduct.originalName) - calculateSimilarity(product1.name, currentProduct.originalName));
 
     if (similarProducts.length > 0) {
       setCurrentImportItem({
