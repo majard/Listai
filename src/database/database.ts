@@ -351,3 +351,39 @@ export const updateProductQuantity = async (productId: number, newQuantity: numb
     throw error;
   }
 };
+
+export const consolidateProductHistory = async (sourceProductId: number, targetProductId: number): Promise<void> => {
+  const today = new Date().toISOString().split('T')[0];
+  
+  try {
+    await db.execSync(`
+      BEGIN TRANSACTION;
+      
+      -- Delete any duplicate history entries for today in the target product
+      DELETE FROM quantity_history 
+      WHERE productId = ${targetProductId} 
+      AND date = '${today}';
+      
+      -- Get the latest history entry from source product for today
+      INSERT INTO quantity_history (productId, quantity, date)
+      SELECT ${targetProductId}, quantity, date
+      FROM quantity_history 
+      WHERE productId = ${sourceProductId}
+      AND date = '${today}';
+      
+      -- Delete the source product's history
+      DELETE FROM quantity_history 
+      WHERE productId = ${sourceProductId};
+      
+      -- Delete the source product
+      DELETE FROM products 
+      WHERE id = ${sourceProductId};
+      
+      COMMIT;
+    `);
+  } catch (error) {
+    console.error('Error consolidating product history:', error);
+    await db.execSync('ROLLBACK;');
+    throw error;
+  }
+};
