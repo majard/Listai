@@ -336,13 +336,6 @@ export const updateProductQuantity = async (productId: number, newQuantity: numb
       SET quantity = ${newQuantity} 
       WHERE id = ${productId};
       
-      DELETE FROM quantity_history 
-      WHERE productId = ${productId} 
-      AND date = '${today}';
-      
-      INSERT INTO quantity_history (productId, quantity, date) 
-      VALUES (${productId}, ${newQuantity}, '${today}');
-      
       COMMIT;
     `);
   } catch (error) {
