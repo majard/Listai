@@ -27,7 +27,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import DraggableFlatList, {
   ScaleDecorator,
 } from "react-native-draggable-flatlist";
-import { parse, isSameDay, parseISO } from "date-fns";
+import { parse, isSameDay, parseISO, set } from "date-fns";
 import {
   getProducts,
   Product,
@@ -207,6 +207,14 @@ export default function HomeScreen() {
     setIsImportModalVisible(false);
     setImportText("");
   };
+
+  useEffect(() => {
+    console.log("currentImportItem:", currentImportItem);
+  }, [currentImportItem]);
+
+  useEffect(() => {
+    console.log("confirmationModalVisible:", confirmationModalVisible);
+  }, [confirmationModalVisible]);
 
   useEffect(() => {
     const loadAndSortProducts = async () => {
@@ -520,7 +528,6 @@ export default function HomeScreen() {
         await updateProductQuantity(exactMatch.id, currentProduct.quantity);
       }
       if (importDate && !checkDateExists(productHistory, importDate)) {
-
         await saveProductHistoryForSingleProduct(
           exactMatch.id,
           currentProduct.quantity,
@@ -848,17 +855,46 @@ export default function HomeScreen() {
                       nestedScrollEnabled={true}
                     >
                       {similarProducts.slice(1).map((product, index) => (
-                        <View
-                          key={index}
-                          style={styles.similarProductItemContainer}
+                        // This is a hack to make the selected product the best match
+
+                        <Pressable
+                          key={product.id}
+                          onPress={() => {
+                            console.log(
+                              "\n\n\n\n\n\nsimilarProducts:",
+                              similarProducts
+                            );
+
+                            const updatedSimilarProducts = [
+                              product,
+                              ...similarProducts.filter(
+                                (p) => p.id !== product.id
+                              ),
+                            ];
+
+                            console.log(
+                              "updatedSimilarProducts:",
+                              updatedSimilarProducts
+                            );
+                            setCurrentImportItem({
+                              ...currentImportItem,
+                              bestMatch: product,
+                              similarProducts: updatedSimilarProducts,
+                            });
+                          }}
                         >
-                          <Text style={styles.productValue}>
-                            {product.name}
-                          </Text>
-                          <Text style={styles.quantityText}>
-                            Quantidade: {product.quantity}
-                          </Text>
-                        </View>
+                          <View
+                            key={index}
+                            style={styles.similarProductItemContainer}
+                          >
+                            <Text style={styles.productValue}>
+                              {product.name}
+                            </Text>
+                            <Text style={styles.quantityText}>
+                              Quantidade: {product.quantity}
+                            </Text>
+                          </View>
+                        </Pressable>
                       ))}
                     </ScrollView>
                   </View>
