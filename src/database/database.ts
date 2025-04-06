@@ -19,7 +19,7 @@ export interface QuantityHistory {
 const expectedSchemas = {
   products: [
     { name: 'id', type: 'INTEGER PRIMARY KEY AUTOINCREMENT' },
-    { name: 'name', type: 'TEXT NOT NULL' },
+    { name: 'name', type: 'TEXT NOT NULL UNIQUE' },
     { name: 'quantity', type: 'INTEGER NOT NULL' },
     { name: 'order', type: 'INTEGER NOT NULL', default: 0 },
   ],
@@ -28,6 +28,7 @@ const expectedSchemas = {
     { name: 'productId', type: 'INTEGER NOT NULL' },
     { name: 'quantity', type: 'INTEGER NOT NULL' },
     { name: 'date', type: 'TEXT NOT NULL' },
+    { name: 'UNIQUE', type: '(productId, date)' },
   ],
 };
 
@@ -107,10 +108,10 @@ export const initDatabase = () => {
     try {
       // Create core tables only
       db.execSync(
-        'CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, quantity INTEGER NOT NULL, `order` INTEGER NOT NULL DEFAULT 0);'
+        'CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, quantity INTEGER NOT NULL, `order` INTEGER NOT NULL DEFAULT 0);'
       );
       db.execSync(
-        'CREATE TABLE IF NOT EXISTS quantity_history (id INTEGER PRIMARY KEY AUTOINCREMENT, productId INTEGER NOT NULL, quantity INTEGER NOT NULL, date TEXT NOT NULL, FOREIGN KEY(productId) REFERENCES products(id) ON DELETE CASCADE);'
+        'CREATE TABLE IF NOT EXISTS quantity_history (id INTEGER PRIMARY KEY AUTOINCREMENT, productId INTEGER NOT NULL, quantity INTEGER NOT NULL, date TEXT NOT NULL, UNIQUE(productId, date), FOREIGN KEY(productId) REFERENCES products(id) ON DELETE CASCADE);'
       );
       resolve(true);
     } catch (error) {
@@ -148,7 +149,17 @@ export const addProduct = (name: string, quantity: number): Promise<number> => {
         reject(new Error('Failed to get inserted ID'));
       }
     } catch (error) {
-      reject(error);
+      // If error is due to unique constraint violation, get the existing product
+      const existingProduct = db.getFirstSync(
+        `SELECT id FROM products WHERE name = '${name}';`
+      ) as { id: number };
+
+      if (existingProduct) {
+        updateProduct(existingProduct.id, quantity);
+        resolve(existingProduct.id);
+      } else {
+        reject(error);
+      }
     }
   });
 };
@@ -298,18 +309,74 @@ export const updateProductName = (id: number, name: string): Promise<void> => {
   });
 };
 
-  // Helper function to save history for a single product with a specific date
+// Helper function to save history for a single product with a specific date
 export const saveProductHistoryForSingleProduct = async (productId: number, quantity: number, date: Date): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      try {
-        const dateToSave = date.toISOString();
-        db.execSync(
-          `INSERT INTO quantity_history (productId, quantity, date) VALUES (${productId}, ${quantity}, '${dateToSave}');`
-        );
-        resolve();
-      } catch (error) {
-        console.error("Error saving history for product ID:", productId, error);
-        reject(error);
-      }
-    });
-  };
+  return new Promise((resolve, reject) => {
+    try {
+      const dateToSave = date.toISOString();
+      db.execSync(
+        `INSERT INTO quantity_history (productId, quantity, date) VALUES (${productId}, ${quantity}, '${dateToSave}');`
+      );
+      resolve();
+    } catch (error) {
+      console.error("Error saving history for product ID:", productId, error);
+      reject(error);
+    }
+  });
+};
+
+export const updateProductQuantity = async (productId: number, newQuantity: number): Promise<void> => {
+  const today = new Date().toISOString().split('T')[0];
+  
+  try {
+    await db.execSync(`
+      BEGIN TRANSACTION;
+      
+      UPDATE products 
+      SET quantity = ${newQuantity} 
+      WHERE id = ${productId};
+      
+      COMMIT;
+    `);
+  } catch (error) {
+    console.error('Error updating product quantity:', error);
+    await db.execSync('ROLLBACK;');
+    throw error;
+  }
+};
+
+export const consolidateProductHistory = async (sourceProductId: number, targetProductId: number): Promise<void> => {
+  const today = new Date().toISOString().split('T')[0];
+  
+  try {
+    await db.execSync(`
+      BEGIN TRANSACTION;
+      
+      -- Delete any duplicate history entries for today in the target product
+      DELETE FROM quantity_history 
+      WHERE productId = ${targetProductId} 
+      AND date = '${today}';
+      
+      -- Get the latest history entry from source product for today
+      INSERT INTO quantity_history (productId, quantity, date)
+      SELECT ${targetProductId}, quantity, date
+      FROM quantity_history 
+      WHERE productId = ${sourceProductId}
+      AND date = '${today}';
+      
+      -- Delete the source product's history
+      DELETE FROM quantity_history 
+      WHERE productId = ${sourceProductId};
+      
+      -- Delete the source product
+      DELETE FROM products 
+      WHERE id = ${sourceProductId};
+      
+      COMMIT;
+    `);
+  } catch (error) {
+    console.error('Error consolidating product history:', error);
+    await db.execSync('ROLLBACK;');
+    throw error;
+  }
+};

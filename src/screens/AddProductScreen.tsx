@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { TextInput as PaperTextInput, Button, useTheme } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -15,6 +15,8 @@ export default function AddProductScreen() {
   const theme = useTheme();
 
   const handleSubmit = async () => {
+    console.log('adding product name:', name);
+    
     try {
       await addProduct(
         name,
@@ -27,39 +29,55 @@ export default function AddProductScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <PaperTextInput
-        label="Nome do Produto"
-        value={name}
-        onChangeText={setName}
-        style={styles.input}
-        mode="outlined"
-      />
-      <PaperTextInput
-        label="Quantidade"
-        value={quantity}
-        onChangeText={setQuantity}
-        keyboardType="numeric"
-        style={styles.input}
-        mode="outlined"
-      />
-      <Button
-        mode="contained"
-        onPress={handleSubmit}
-        style={styles.button}
-        disabled={!name || !quantity}
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.container}
+    >
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
       >
-        Adicionar Produto
-      </Button>
-    </View>
+        <PaperTextInput
+          label="Nome do Produto"
+          value={name}
+          onChangeText={setName}
+          style={styles.input}
+          mode="outlined"
+          autoFocus
+          blurOnSubmit={false}
+          returnKeyType="next"
+        />
+        <PaperTextInput
+          label="Quantidade"
+          value={quantity}
+          onChangeText={setQuantity}
+          keyboardType="numeric"
+          style={styles.input}
+          mode="outlined"
+          blurOnSubmit={true}
+          returnKeyType="done"
+        />
+        <Button
+          mode="contained"
+          onPress={handleSubmit}
+          style={styles.button}
+          disabled={!name || !quantity}
+        >
+          Adicionar Produto
+        </Button>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
     backgroundColor: '#f5f5f5',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: 16,
   },
   input: {
     marginBottom: 16,
@@ -67,4 +85,4 @@ const styles = StyleSheet.create({
   button: {
     marginTop: 8,
   },
-}); 
+});
