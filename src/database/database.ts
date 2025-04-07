@@ -122,7 +122,6 @@ export const initDatabase = () => {
 
 export const createProduct = (name: string, quantity: number): Promise<void> => {
   return new Promise((resolve, reject) => {
-    console.log("Creating product:", name, quantity);
     try {
       db.execSync(
         `INSERT INTO products (name, quantity) VALUES ('${name.trim()}', ${quantity});`
@@ -188,7 +187,6 @@ export const getProducts = (): Promise<Product[]> => {
 export const getProductHistory = (identifier: string): Promise<QuantityHistory[]> => {
   return new Promise(async (resolve, reject) => {
     try {
-      console.log("Getting history for identifier:", identifier);
       let query: string;
       let params: any[] = [];
 
@@ -204,7 +202,6 @@ export const getProductHistory = (identifier: string): Promise<QuantityHistory[]
       }
 
       const result = db.getAllSync(query, params) as QuantityHistory[];
-      console.log("History result for:", identifier, result);
       resolve(result);
     } catch (error: any) {
       // ... error handling ...
@@ -214,7 +211,6 @@ export const getProductHistory = (identifier: string): Promise<QuantityHistory[]
 
 export const updateProduct = (id: number, quantity: number): Promise<void> => {
   return new Promise((resolve, reject) => {
-    console.log("Updating product:", id, quantity);
     try {
       db.execSync(
         `UPDATE products SET quantity = ${quantity} WHERE id = ${id};`

@@ -50,7 +50,6 @@ export default function EditProductScreen() {
   const [name, setName] = useState(product?.name || "");
   const [isEditingName, setIsEditingName] = useState(false);
 
-  console.log("Product:", product);
 
   useEffect(() => {
     if (product) {
@@ -63,9 +62,7 @@ export default function EditProductScreen() {
   const loadHistory = async () => {
     if (product?.name) { // Ensure product and id exist before calling
       try {
-        console.log("Loading history for product:", product.name);
         const data = await getProductHistory(product.name.toString());
-        console.log("History loaded:", data);
         setHistory(data || []); 
       } catch (error) {
         console.error("Erro ao carregar histórico:", error);
@@ -87,7 +84,6 @@ export default function EditProductScreen() {
   const handleNameUpdate = async () => {
     if (product?.id) {
       try {
-        console.log("Updating name:", name, product.id);
         await updateProductName(product.id, name);
         setIsEditingName(false);
         navigation.setParams({ product: { ...product, name } });
@@ -174,6 +170,7 @@ export default function EditProductScreen() {
                 size={24}
                 onPress={handleNameUpdate}
                 iconColor={theme.colors.primary}
+                testID="save-name-button"
               />
               <IconButton
                 icon="close"
@@ -183,6 +180,7 @@ export default function EditProductScreen() {
                   setIsEditingName(false);
                 }}
                 iconColor={theme.colors.error}
+                testID="cancel-name-button"
               />
             </View>
           ) : (
@@ -195,6 +193,7 @@ export default function EditProductScreen() {
                 size={24}
                 onPress={() => setIsEditingName(true)}
                 iconColor={theme.colors.primary}
+                testID="edit-name-button"
               />
             </View>
           )}
@@ -203,6 +202,7 @@ export default function EditProductScreen() {
             size={24}
             onPress={handleDelete}
             iconColor={theme.colors.error}
+            testID="delete-button"
           />
         </View>
 

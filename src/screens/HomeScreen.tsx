@@ -209,14 +209,6 @@ export default function HomeScreen() {
   };
 
   useEffect(() => {
-    console.log("currentImportItem:", currentImportItem);
-  }, [currentImportItem]);
-
-  useEffect(() => {
-    console.log("confirmationModalVisible:", confirmationModalVisible);
-  }, [confirmationModalVisible]);
-
-  useEffect(() => {
     const loadAndSortProducts = async () => {
       try {
         const loadedProducts = await getProducts();
@@ -860,10 +852,6 @@ export default function HomeScreen() {
                         <Pressable
                           key={product.id}
                           onPress={() => {
-                            console.log(
-                              "\n\n\n\n\n\nsimilarProducts:",
-                              similarProducts
-                            );
 
                             const updatedSimilarProducts = [
                               product,
@@ -872,10 +860,6 @@ export default function HomeScreen() {
                               ),
                             ];
 
-                            console.log(
-                              "updatedSimilarProducts:",
-                              updatedSimilarProducts
-                            );
                             setCurrentImportItem({
                               ...currentImportItem,
                               bestMatch: product,
@@ -969,6 +953,7 @@ export default function HomeScreen() {
               navigation.navigate("EditProduct", { product: item })
             }
             onLongPress={drag}
+            testID={`product-card-${item.id}`}
           >
             <Card.Content>
               <View style={styles.cardHeader}>
@@ -991,6 +976,7 @@ export default function HomeScreen() {
                     size={20}
                     onPress={() => handleDelete(item.id)}
                     iconColor={theme.colors.error}
+                    testID={`delete-button-${item.id}`}
                   />
                 </View>
               </View>
@@ -1007,6 +993,7 @@ export default function HomeScreen() {
                       }
                       keyboardType="numeric"
                       style={styles.input}
+                      testID={`quantity-text-input-${item.id}`}
                     />
                   </View>
                   <View style={styles.quantityButtons}>
@@ -1031,6 +1018,7 @@ export default function HomeScreen() {
                         startContinuousAdjustment(item.id, item.quantity, true)
                       }
                       onPressOut={stopContinuousAdjustment}
+                      testID={`increment-button-${item.id}`}
                     />
                   </View>
                 </View>

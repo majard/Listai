@@ -46,6 +46,7 @@ export default function AddProductScreen() {
           autoFocus
           blurOnSubmit={false}
           returnKeyType="next"
+          testID="product-name-input"
         />
         <PaperTextInput
           label="Quantidade"
@@ -56,12 +57,14 @@ export default function AddProductScreen() {
           mode="outlined"
           blurOnSubmit={true}
           returnKeyType="done"
+          testID="product-quantity-input"
         />
         <Button
           mode="contained"
           onPress={handleSubmit}
           style={styles.button}
           disabled={!name || !quantity}
+          testID="add-product-button"
         >
           Adicionar Produto
         </Button>
