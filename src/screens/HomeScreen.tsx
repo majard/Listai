@@ -1158,6 +1158,7 @@ export default function HomeScreen() {
         renderItem={renderItem}
         contentContainerStyle={styles.list}
         extraData={products}
+        testID="draggable-flatlist"
       />
       <FAB
         style={styles.fab}

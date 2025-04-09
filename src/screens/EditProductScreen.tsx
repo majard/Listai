@@ -57,7 +57,8 @@ export default function EditProductScreen() {
       setName(product.name);
       loadHistory();
     }
-  }, [product]);
+  }, []);
+
 
   const loadHistory = async () => {
     if (product?.name) { // Ensure product and id exist before calling
@@ -73,7 +74,7 @@ export default function EditProductScreen() {
   const handleUpdate = async () => {
     if (product?.id) {
       try {
-        await updateProduct(product.id, parseInt(quantity, 10));
+        await updateProduct(product.id, parseInt(quantity));
         navigation.navigate("Home", { shouldRefresh: true });
       } catch (error) {
         console.error("Erro ao atualizar produto:", error);
@@ -158,12 +159,14 @@ export default function EditProductScreen() {
       <ScrollView style={styles.container}>
         <View style={styles.header}>
           {isEditingName ? (
-            <View style={styles.nameEditContainer}>
+            <View style={styles.nameEditContainer} testID="name-edit-container">
               <PaperTextInput
                 value={name}
                 onChangeText={setName}
                 style={styles.nameInput}
                 mode="outlined"
+                testID="name-input"
+
               />
               <IconButton
                 icon="check"
@@ -184,8 +187,8 @@ export default function EditProductScreen() {
               />
             </View>
           ) : (
-            <View style={styles.nameContainer}>
-              <Text variant="titleLarge" style={styles.title}>
+            <View style={styles.nameContainer} testID="name-container">
+              <Text variant="titleLarge" style={styles.title} testID="product-name">
                 {product?.name}
               </Text>
               <IconButton
@@ -218,12 +221,14 @@ export default function EditProductScreen() {
               keyboardType="numeric"
               style={styles.input}
               mode="outlined"
+              testID="quantity-input"
             />
             <Button
               mode="contained"
               onPress={handleUpdate}
               style={styles.button}
               disabled={!quantity}
+              testID="update-button"
             >
               Atualizar Quantidade
             </Button>

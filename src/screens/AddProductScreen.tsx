@@ -14,9 +14,7 @@ export default function AddProductScreen() {
   const navigation = useNavigation<AddProductScreenNavigationProp>();
   const theme = useTheme();
 
-  const handleSubmit = async () => {
-    console.log('adding product name:', name);
-    
+  const handleSubmit = async () => {    
     try {
       await addProduct(
         name,
