@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">14.28% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>4/28</span>
+                <span class='fraction'>0/28</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">16.66% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>4/24</span>
+                <span class='fraction'>0/24</span>
             </div>
         
             
@@ -111,31 +111,23 @@
 <a name='L46'></a><a href='#L46'>46</a>
 <a name='L47'></a><a href='#L47'>47</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -143,7 +135,15 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -157,7 +157,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Product } from "../database/database";
 &nbsp;
-export const preprocessName = <span class="fstat-no" title="function not covered" >(n</span>ame: string): string =&gt; {
+export const preprocessName = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(n</span>ame: string): string =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >  return name</span>
     .toLowerCase()
     .normalize('NFD')
@@ -166,7 +166,7 @@ export const preprocessName = <span class="fstat-no" title="function not covered
     .trim();
 };
 &nbsp;
-export const calculateSimilarity = <span class="fstat-no" title="function not covered" >(s</span>tr1: string, str2: string): number =&gt; {
+export const calculateSimilarity = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(s</span>tr1: string, str2: string): number =&gt; {</span>
   const s1 = <span class="cstat-no" title="statement not covered" >preprocessName(str1);</span>
   const s2 = <span class="cstat-no" title="statement not covered" >preprocessName(str2);</span>
 &nbsp;
@@ -181,7 +181,7 @@ export const calculateSimilarity = <span class="fstat-no" title="function not co
 <span class="cstat-no" title="statement not covered" >  return (2.0 * intersection) / union;</span>
 };
 &nbsp;
-const getPairs = <span class="fstat-no" title="function not covered" >(s</span>tr: string): Set&lt;string&gt; =&gt; {
+const getPairs = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(s</span>tr: string): Set&lt;string&gt; =&gt; {</span>
   const pairs = <span class="cstat-no" title="statement not covered" >new Set&lt;string&gt;();</span>
 <span class="cstat-no" title="statement not covered" >  for (let i = <span class="cstat-no" title="statement not covered" >0;</span> i &lt; str.length - 1; i++) {</span>
 <span class="cstat-no" title="statement not covered" >    pairs.add(str.slice(i, i + 2));</span>
@@ -189,7 +189,7 @@ const getPairs = <span class="fstat-no" title="function not covered" >(s</span>t
 <span class="cstat-no" title="statement not covered" >  return pairs;</span>
 };
 &nbsp;
-export const findSimilarProducts = <span class="fstat-no" title="function not covered" >(n</span>ame: string, products: Product[], similarityThreshold: number = <span class="branch-0 cbranch-no" title="branch not covered" >0.8)</span>: Product[] =&gt; {
+export const findSimilarProducts = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(n</span>ame: string, products: Product[], similarityThreshold: number = <span class="branch-0 cbranch-no" title="branch not covered" >0.8)</span>: Product[] =&gt; {</span>
   const processedTargetName = <span class="cstat-no" title="statement not covered" >preprocessName(name);</span>
   
 <span class="cstat-no" title="statement not covered" >  return products</span>
@@ -208,7 +208,7 @@ export const findSimilarProducts = <span class="fstat-no" title="function not co
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-04-09T17:47:11.258Z
+                at 2025-04-11T12:23:32.038Z
             </div>
         <script src="../prettify.js"></script>
         <script>
