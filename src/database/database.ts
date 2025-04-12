@@ -1,10 +1,12 @@
-import * as SQLite from 'expo-sqlite';
+import * as SQLite from "expo-sqlite";
 
 let db: SQLite.SQLiteDatabase | null = null;
 
-export const initializeDatabase = (databaseName: string = 'listai.db'): SQLite.SQLiteDatabase => {
+export const initializeDatabase = async (
+  databaseName: string = "listai.db"
+): Promise<SQLite.SQLiteDatabase> => {
   if (!db) {
-    db = SQLite.openDatabaseSync(databaseName);
+    db = await SQLite.openDatabaseAsync(databaseName);
     // Initialize tables if needed here, or in an initDatabase function called elsewhere
   }
   return db;
@@ -12,7 +14,9 @@ export const initializeDatabase = (databaseName: string = 'listai.db'): SQLite.S
 
 const getDb = (): SQLite.SQLiteDatabase => {
   if (!db) {
-    throw new Error('Database has not been initialized. Call initializeDatabase() first.');
+    throw new Error(
+      "Database has not been initialized. Call initializeDatabase() first."
+    );
   }
   return db;
 };
@@ -33,41 +37,58 @@ export interface QuantityHistory {
 
 const expectedSchemas = {
   products: [
-    { name: 'id', type: 'INTEGER PRIMARY KEY AUTOINCREMENT' },
-    { name: 'name', type: 'TEXT NOT NULL UNIQUE' },
-    { name: 'quantity', type: 'INTEGER NOT NULL' },
-    { name: 'order', type: 'INTEGER NOT NULL', default: 0 },
+    { name: "id", type: "INTEGER PRIMARY KEY AUTOINCREMENT" },
+    { name: "name", type: "TEXT NOT NULL UNIQUE" },
+    { name: "quantity", type: "INTEGER NOT NULL" },
+    { name: "order", type: "INTEGER NOT NULL", default: 0 },
   ],
   quantity_history: [
-    { name: 'id', type: 'INTEGER PRIMARY KEY AUTOINCREMENT' },
-    { name: 'productId', type: 'INTEGER NOT NULL' },
-    { name: 'quantity', type: 'INTEGER NOT NULL' },
-    { name: 'date', type: 'TEXT NOT NULL' },
-    { name: 'UNIQUE', type: '(productId, date)' },
+    { name: "id", type: "INTEGER PRIMARY KEY AUTOINCREMENT" },
+    { name: "productId", type: "INTEGER NOT NULL" },
+    { name: "quantity", type: "INTEGER NOT NULL" },
+    { name: "date", type: "TEXT NOT NULL" },
+    { name: "UNIQUE", type: "(productId, date)" },
   ],
 };
 
 const getExistingColumns = (tableName: string): string[] => {
   try {
-    const result = getDb().getAllSync(`PRAGMA table_info(${tableName});`) as { name: string }[];
-    console.log('result', result);
-    return result.map(columnInfo => columnInfo.name);
+    const result = getDb().getAllSync(`PRAGMA table_info(${tableName});`) as {
+      name: string;
+    }[];
+    console.log("result", result);
+    return result.map((columnInfo) => columnInfo.name);
   } catch (error) {
     console.error(`Error getting column info for ${tableName}:`, error);
     return [];
   }
 };
 
-const addMissingColumn = (tableName: string, columnName: string, columnType: string, defaultValue: any) => {
-  console.log('Adding missing column:', columnName, columnType, '\ndefault:', defaultValue);
-  const defaultValueClause = typeof defaultValue !== 'undefined' ? `DEFAULT ${defaultValue}` : '';
-  const alterStatement = `ALTER TABLE ${tableName} ADD COLUMN \`${columnName}\` ${columnType.replace('NOT NULL', '')}${defaultValueClause};`;
-  console.log('alterStatement', alterStatement);
+const addMissingColumn = (
+  tableName: string,
+  columnName: string,
+  columnType: string,
+  defaultValue: any
+) => {
+  console.log(
+    "Adding missing column:",
+    columnName,
+    columnType,
+    "\ndefault:",
+    defaultValue
+  );
+  const defaultValueClause =
+    typeof defaultValue !== "undefined" ? `DEFAULT ${defaultValue}` : "";
+  const alterStatement = `ALTER TABLE ${tableName} ADD COLUMN \`${columnName}\` ${columnType.replace(
+    "NOT NULL",
+    ""
+  )}${defaultValueClause};`;
+  console.log("alterStatement", alterStatement);
   getDb().execSync(alterStatement);
 };
 
 const repairDatabaseSchema = (tableName: string) => {
-  console.log('Repairing database schema for table:', tableName);
+  console.log("Repairing database schema for table:", tableName);
   const columns = expectedSchemas[tableName];
 
   // Check if the table exists
@@ -76,7 +97,7 @@ const repairDatabaseSchema = (tableName: string) => {
     getDb().execSync(`SELECT 1 FROM ${tableName} LIMIT 1;`);
     tableExists = true;
   } catch (e: any) {
-    if (e.message.includes('no such table')) {
+    if (e.message.includes("no such table")) {
       tableExists = false;
     } else {
       throw e; // Re-throw any other errors
@@ -85,18 +106,29 @@ const repairDatabaseSchema = (tableName: string) => {
 
   if (!tableExists) {
     const createStatement = `CREATE TABLE IF NOT EXISTS ${tableName} (${columns
-      .map(col => `${col.name} ${col.type}`)
-      .join(', ')});`;
+      .map((col) => `${col.name} ${col.type}`)
+      .join(", ")});`;
     getDb().execSync(createStatement);
   } else {
     const existingColumns = getExistingColumns(tableName);
-    console.log('existingColumns', existingColumns);
-    console.log('columns', columns);
-    columns.forEach(expectedColumn => {
+    console.log("existingColumns", existingColumns);
+    console.log("columns", columns);
+    columns.forEach((expectedColumn) => {
       if (!existingColumns.includes(expectedColumn.name)) {
-        console.log(`Processing missing column: ${expectedColumn.name}, type: ${expectedColumn.type}, default: ${expectedColumn.default} (type: ${typeof expectedColumn.default})`); // <--- ADD THIS LINE
+        console.log(
+          `Processing missing column: ${expectedColumn.name}, type: ${
+            expectedColumn.type
+          }, default: ${
+            expectedColumn.default
+          } (type: ${typeof expectedColumn.default})`
+        ); // <--- ADD THIS LINE
 
-        addMissingColumn(tableName, expectedColumn.name, expectedColumn.type, expectedColumn.default);
+        addMissingColumn(
+          tableName,
+          expectedColumn.name,
+          expectedColumn.type,
+          expectedColumn.default
+        );
       }
     });
   }
@@ -107,10 +139,10 @@ export const initDatabase = () => {
     try {
       const database = getDb();
       database.execSync(
-        'CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, quantity INTEGER NOT NULL, `order` INTEGER NOT NULL DEFAULT 0);'
+        "CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, quantity INTEGER NOT NULL, `order` INTEGER NOT NULL DEFAULT 0);"
       );
       database.execSync(
-        'CREATE TABLE IF NOT EXISTS quantity_history (id INTEGER PRIMARY KEY AUTOINCREMENT, productId INTEGER NOT NULL, quantity INTEGER NOT NULL, date TEXT NOT NULL, UNIQUE(productId, date), FOREIGN KEY(productId) REFERENCES products(id) ON DELETE CASCADE);'
+        "CREATE TABLE IF NOT EXISTS quantity_history (id INTEGER PRIMARY KEY AUTOINCREMENT, productId INTEGER NOT NULL, quantity INTEGER NOT NULL, date TEXT NOT NULL, UNIQUE(productId, date), FOREIGN KEY(productId) REFERENCES products(id) ON DELETE CASCADE);"
       );
       resolve(true);
     } catch (error) {
@@ -119,7 +151,10 @@ export const initDatabase = () => {
   });
 };
 
-export const createProduct = (name: string, quantity: number): Promise<void> => {
+export const createProduct = (
+  name: string,
+  quantity: number
+): Promise<void> => {
   return new Promise((resolve, reject) => {
     try {
       getDb().execSync(
@@ -132,7 +167,10 @@ export const createProduct = (name: string, quantity: number): Promise<void> => 
   });
 };
 
-export const addProduct = async (name: string, quantity: number): Promise<number> => {
+export const addProduct = async (
+  name: string,
+  quantity: number
+): Promise<number> => {
   const db = getDb();
   try {
     // Check if the product already exists using a parameterized query
@@ -158,10 +196,10 @@ export const addProduct = async (name: string, quantity: number): Promise<number
     if (lastInsertedRow && lastInsertedRow.id) {
       return lastInsertedRow.id;
     } else {
-      throw new Error('Failed to get inserted ID');
+      throw new Error("Failed to get inserted ID");
     }
   } catch (error) {
-    console.log('error', error);
+    console.log("error", error);
     console.error("Error adding product:", error);
     throw new Error(error.message);
   }
@@ -171,14 +209,21 @@ export const getProducts = (): Promise<Product[]> => {
   return new Promise(async (resolve, reject) => {
     try {
       const database = getDb();
-      const result = database.getAllSync('SELECT * FROM products ORDER BY `order` ASC;');
+      const result = database.getAllSync(
+        "SELECT * FROM products ORDER BY `order` ASC;"
+      );
       resolve(result as Product[]);
     } catch (error: any) {
-      if (error.message.includes('no such column') || error.message.includes('no such table')) {
+      if (
+        error.message.includes("no such column") ||
+        error.message.includes("no such table")
+      ) {
         try {
-          console.log('Repairing database schema for products table', error);
-          repairDatabaseSchema('products');
-          const result = getDb().getAllSync('SELECT * FROM products ORDER BY `order` ASC;');
+          console.log("Repairing database schema for products table", error);
+          repairDatabaseSchema("products");
+          const result = getDb().getAllSync(
+            "SELECT * FROM products ORDER BY `order` ASC;"
+          );
           resolve(result as Product[]); // Retry after repair
         } catch (repairError) {
           reject(repairError);
@@ -190,7 +235,9 @@ export const getProducts = (): Promise<Product[]> => {
   });
 };
 
-export const getProductHistory = (identifier: string): Promise<QuantityHistory[]> => {
+export const getProductHistory = (
+  identifier: string
+): Promise<QuantityHistory[]> => {
   return new Promise(async (resolve, reject) => {
     try {
       const database = getDb();
@@ -198,9 +245,14 @@ export const getProductHistory = (identifier: string): Promise<QuantityHistory[]
       let params: any[] = [];
 
       if (!isNaN(parseInt(identifier, 10))) {
-        query = `SELECT * FROM quantity_history WHERE productId = ${parseInt(identifier, 10)} ORDER BY date DESC;`;
+        query = `SELECT * FROM quantity_history WHERE productId = ${parseInt(
+          identifier,
+          10
+        )} ORDER BY date DESC;`;
       } else {
-        const product = database.getFirstSync(`SELECT id FROM products WHERE name = '${identifier}';`) as { id: number } | undefined;
+        const product = database.getFirstSync(
+          `SELECT id FROM products WHERE name = '${identifier}';`
+        ) as { id: number } | undefined;
         if (!product) {
           resolve([]);
           return;
@@ -229,18 +281,30 @@ export const updateProduct = (id: number, quantity: number): Promise<void> => {
   });
 };
 
-export const saveProductHistory = async (overrideDate?: Date): Promise<void> => {
+export const saveProductHistory = async (
+  overrideDate?: Date
+): Promise<void> => {
   return new Promise((resolve, reject) => {
     try {
       const database = getDb();
       const now = overrideDate ? overrideDate : new Date();
       const dateToSave = now.toISOString();
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-      const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString();
+      const todayStart = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate()
+      ).toISOString();
+      const todayEnd = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() + 1
+      ).toISOString();
 
-      const latestProducts = database.getAllSync('SELECT id, quantity FROM products;') as { id: number; quantity: number }[];
+      const latestProducts = database.getAllSync(
+        "SELECT id, quantity FROM products;"
+      ) as { id: number; quantity: number }[];
 
-      latestProducts.forEach(product => {
+      latestProducts.forEach((product) => {
         const existingEntry = database.getFirstSync(
           `SELECT id FROM quantity_history WHERE productId = ${product.id} AND date >= '${todayStart}' AND date < '${todayEnd}';`
         ) as { id: number };
@@ -275,11 +339,13 @@ export const deleteProduct = (id: number): Promise<void> => {
   });
 };
 
-export const updateProductOrder = (updates: { id: number; order: number }[]): Promise<void> => {
+export const updateProductOrder = (
+  updates: { id: number; order: number }[]
+): Promise<void> => {
   return new Promise((resolve, reject) => {
     try {
       const database = getDb();
-      database.execSync('BEGIN TRANSACTION;');
+      database.execSync("BEGIN TRANSACTION;");
 
       updates.forEach(({ id, order }) => {
         database.execSync(
@@ -287,10 +353,10 @@ export const updateProductOrder = (updates: { id: number; order: number }[]): Pr
         );
       });
 
-      database.execSync('COMMIT;');
+      database.execSync("COMMIT;");
       resolve();
     } catch (error) {
-      database.execSync('ROLLBACK;');
+      database.execSync("ROLLBACK;");
       reject(error);
     }
   });
@@ -306,13 +372,17 @@ export const updateProductName = (id: number, name: string): Promise<void> => {
       );
       resolve();
     } catch (error) {
-      console.error('Error updating product name:', error);
+      console.error("Error updating product name:", error);
       reject(error);
     }
   });
 };
 
-export const saveProductHistoryForSingleProduct = async (productId: number, quantity: number, date: Date): Promise<void> => {
+export const saveProductHistoryForSingleProduct = async (
+  productId: number,
+  quantity: number,
+  date: Date
+): Promise<void> => {
   return new Promise((resolve, reject) => {
     try {
       const database = getDb();
@@ -328,27 +398,27 @@ export const saveProductHistoryForSingleProduct = async (productId: number, quan
   });
 };
 
-export const updateProductQuantity = async (productId: number, newQuantity: number): Promise<void> => {
+export const updateProductQuantity = async (
+  productId: number,
+  newQuantity: number
+): Promise<void> => {
   try {
     const database = getDb();
-    await database.execSync(`
-      BEGIN TRANSACTION;
-
-      UPDATE products
-      SET quantity = ${newQuantity}
-      WHERE id = ${productId};
-
-      COMMIT;
-    `);
+    await database.runAsync("UPDATE products SET quantity = ? WHERE id = ?", [
+      newQuantity,
+      productId,
+    ]);
   } catch (error) {
-    console.error('Error updating product quantity:', error);
-    await getDb().execSync('ROLLBACK;');
+    console.error("Error updating product quantity:", error);
     throw error;
   }
 };
 
-export const consolidateProductHistory = async (sourceProductId: number, targetProductId: number): Promise<void> => {
-  const today = new Date().toISOString().split('T')[0];
+export const consolidateProductHistory = async (
+  sourceProductId: number,
+  targetProductId: number
+): Promise<void> => {
+  const today = new Date().toISOString().split("T")[0];
 
   try {
     const database = getDb();
@@ -378,8 +448,8 @@ export const consolidateProductHistory = async (sourceProductId: number, targetP
       COMMIT;
     `);
   } catch (error) {
-    console.error('Error consolidating product history:', error);
-    await getDb().execSync('ROLLBACK;');
+    console.error("Error consolidating product history:", error);
+    await getDb().execSync("ROLLBACK;");
     throw error;
   }
 };

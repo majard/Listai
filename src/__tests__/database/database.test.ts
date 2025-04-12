@@ -18,6 +18,7 @@ import {
 // Mock the expo-sqlite module
 jest.mock("expo-sqlite", () => ({
   openDatabaseSync: jest.fn(),
+  openDatabaseAsync: jest.fn(),
   getDb: jest.fn(),
 }));
 
@@ -54,7 +55,7 @@ describe("Database Functions", () => {
     mockDb.exec.mockReset();
     mockDb.getDb.mockReset(); // Reset getDb as well
 
-    (SQLite.openDatabaseSync as jest.Mock).mockReturnValue(mockDb);
+    (SQLite.openDatabaseAsync as jest.Mock).mockReturnValue(mockDb);
     initializeDatabase(); // Call the actual initializeDatabase function
     jest.spyOn(console, "error").mockImplementation(() => {});
   });
@@ -220,10 +221,9 @@ describe("Database Functions", () => {
         .mockReturnValueOnce(mockProducts)
         .mockReturnValueOnce(mockProducts);
       // Simulate table no such table error
-      mockDb.execSync
-      .mockImplementationOnce(() => {
+      mockDb.execSync.mockImplementationOnce(() => {
         throw new Error("SQL logic error: no such table: products");
-      })
+      });
 
       const products = await getProducts();
       expect(products).toEqual(mockProducts);
@@ -233,7 +233,7 @@ describe("Database Functions", () => {
       expect(mockDb.getAllSync).toHaveBeenCalledTimes(2);
     });
 
-    test.skip("rejects if error occurs during schema repair", async () => {
+    test("rejects if error occurs during schema repair", async () => {
       const schemaError = new Error("SQL error during create table");
       mockDb.getAllSync.mockImplementationOnce(() => {
         throw new Error("SQL logic error: no such table: products");
@@ -249,43 +249,31 @@ describe("Database Functions", () => {
   });
 
   describe("updateProductQuantity", () => {
-    test.skip("updates product quantity successfully", async () => {
-      mockDb.execSync.mockReturnValueOnce(undefined); // Simulate transaction begin
-      mockDb.execSync.mockReturnValueOnce({ rowsAffected: 1 }); // Simulate update
-      mockDb.execSync.mockReturnValueOnce(undefined); // Simulate transaction commit
+    test("updates product quantity successfully", async () => {
+      mockDb.runAsync.mockReturnValueOnce({ rowsAffected: 1 }); // Simulate update
 
       await updateProductQuantity(1, 10);
 
-      expect(mockDb.execSync).toHaveBeenCalledWith(
-        expect.stringContaining("BEGIN TRANSACTION")
-      );
-      expect(mockDb.execSync).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sql: expect.stringContaining(
-            "UPDATE products SET quantity = ? WHERE id = ?"
-          ),
-          args: [10, 1],
-        })
-      );
-      expect(mockDb.execSync).toHaveBeenCalledWith(
-        expect.stringContaining("COMMIT")
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
+        expect.stringContaining("UPDATE products SET quantity = ? WHERE id = ?"),
+        [10, 1]
       );
     });
 
     test.skip("handles SQL errors and rolls back transaction", async () => {
       const sqlError = new Error("SQL error during update");
-      mockDb.execSync.mockReturnValueOnce(undefined); // BEGIN
-      mockDb.execSync.mockImplementationOnce(() => {
+      mockDb.runAsync.mockReturnValueOnce(undefined); // BEGIN
+      mockDb.runAsync.mockImplementationOnce(() => {
         throw sqlError;
       });
-      mockDb.execSync.mockReturnValueOnce(undefined); // ROLLBACK
+      mockDb.runAsync.mockReturnValueOnce(undefined); // ROLLBACK
 
       await expect(updateProductQuantity(1, 10)).rejects.toThrow(sqlError);
 
-      expect(mockDb.execSync).toHaveBeenCalledWith(
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
         expect.stringContaining("BEGIN TRANSACTION")
       );
-      expect(mockDb.execSync).toHaveBeenCalledWith(
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
         expect.objectContaining({
           sql: expect.stringContaining(
             "UPDATE products SET quantity = ? WHERE id = ?"
@@ -293,7 +281,7 @@ describe("Database Functions", () => {
           args: [10, 1],
         })
       );
-      expect(mockDb.execSync).toHaveBeenCalledWith(
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
         expect.stringContaining("ROLLBACK")
       );
     });
