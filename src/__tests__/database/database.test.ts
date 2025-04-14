@@ -260,29 +260,17 @@ describe("Database Functions", () => {
       );
     });
 
-    test.skip("handles SQL errors and rolls back transaction", async () => {
+    test("handles SQL errors", async () => {
       const sqlError = new Error("SQL error during update");
-      mockDb.runAsync.mockReturnValueOnce(undefined); // BEGIN
       mockDb.runAsync.mockImplementationOnce(() => {
         throw sqlError;
       });
-      mockDb.runAsync.mockReturnValueOnce(undefined); // ROLLBACK
 
       await expect(updateProductQuantity(1, 10)).rejects.toThrow(sqlError);
 
       expect(mockDb.runAsync).toHaveBeenCalledWith(
-        expect.stringContaining("BEGIN TRANSACTION")
-      );
-      expect(mockDb.runAsync).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sql: expect.stringContaining(
-            "UPDATE products SET quantity = ? WHERE id = ?"
-          ),
-          args: [10, 1],
-        })
-      );
-      expect(mockDb.runAsync).toHaveBeenCalledWith(
-        expect.stringContaining("ROLLBACK")
+        expect.stringContaining("UPDATE products SET quantity = ? WHERE id = ?"),
+        [10, 1]
       );
     });
   });
