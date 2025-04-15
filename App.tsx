@@ -5,7 +5,7 @@ import { PaperProvider, MD3LightTheme } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet } from 'react-native';
-import { initDatabase } from './src/database/database';
+import { initializeDatabase } from './src/database/database';
 import HomeScreen from './src/screens/HomeScreen';
 import AddProductScreen from './src/screens/AddProductScreen';
 import EditProductScreen from './src/screens/EditProductScreen';
@@ -23,7 +23,7 @@ const theme = {
 
 export default function App() {
   React.useEffect(() => {
-    initDatabase().catch(console.error);
+    initializeDatabase().catch(console.error);
   }, []);
 
   return (

@@ -612,7 +612,7 @@ export default function HomeScreen() {
     }
   };
 
-  const handleAcceptAllSimilar = async () => {
+  const handleAcceptAllSuggestions = async () => {
     try {
       if (!currentImportItem?.bestMatch || !currentImportItem?.similarProducts)
         return;
@@ -641,9 +641,10 @@ export default function HomeScreen() {
     }
   };
 
-  const handleAcceptAllSuggestions = async () => {
+  const handleAcceptAllSimilar = async () => {
     try {
       if (!currentImportItem) return;
+      const existingProducts = await getProducts();
 
       // Get all remaining products that have similar matches
       const productsToUpdate = currentImportItem.remainingProducts.filter(
@@ -903,7 +904,7 @@ export default function HomeScreen() {
                 </Button>
                 <Button
                   mode="contained"
-                  onPress={handleAcceptAllSimilar}
+                  onPress={handleAcceptAllSuggestions}
                   style={[styles.stackedButton, styles.actionButton]}
                   labelStyle={styles.buttonLabelStyle}
                 >

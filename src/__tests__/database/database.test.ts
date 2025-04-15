@@ -276,29 +276,25 @@ describe("Database Functions", () => {
   });
 
   describe("deleteProduct", () => {
-    test.skip("deletes a product successfully", async () => {
-      mockDb.execSync.mockReturnValueOnce({ rowsAffected: 1 });
+    test("deletes a product successfully", async () => {
+      mockDb.runAsync.mockReturnValueOnce({ rowsAffected: 1 });
       await deleteProduct(1);
-      expect(mockDb.execSync).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sql: expect.stringContaining("DELETE FROM products WHERE id = ?"),
-          args: [1],
-        })
-      );
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
+          "DELETE FROM products WHERE id = ?",
+          1,
+        )
     });
 
-    test.skip("handles SQL errors", async () => {
+    test("handles SQL errors", async () => {
       const sqlError = new Error("SQL error");
-      mockDb.execSync.mockImplementationOnce(() => {
+      mockDb.runAsync.mockImplementationOnce(() => {
         throw sqlError;
       });
       await expect(deleteProduct(1)).rejects.toThrow(sqlError);
-      expect(mockDb.execSync).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sql: expect.stringContaining("DELETE FROM products WHERE id = ?"),
-          args: [1],
-        })
-      );
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
+        "DELETE FROM products WHERE id = ?",
+        1,
+      )
     });
   });
 
@@ -308,60 +304,48 @@ describe("Database Functions", () => {
       { id: 3, order: 1 },
     ];
 
-    test.skip("updates product order successfully", async () => {
-      mockDb.execSync.mockReturnValueOnce(undefined); // BEGIN
-      mockDb.execSync.mockReturnValueOnce({ rowsAffected: 1 }); // Update 1
-      mockDb.execSync.mockReturnValueOnce({ rowsAffected: 1 }); // Update 3
-      mockDb.execSync.mockReturnValueOnce(undefined); // COMMIT
+    test("updates product order successfully", async () => {
+      mockDb.runAsync.mockReturnValueOnce(undefined); // BEGIN
+      mockDb.runAsync.mockReturnValueOnce({ rowsAffected: 1 }); // Update 1
+      mockDb.runAsync.mockReturnValueOnce({ rowsAffected: 1 }); // Update 3
+      mockDb.runAsync.mockReturnValueOnce(undefined); // COMMIT
 
       await updateProductOrder(updates);
 
-      expect(mockDb.execSync).toHaveBeenCalledWith(
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
         expect.stringContaining("BEGIN TRANSACTION")
       );
-      expect(mockDb.execSync).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sql: expect.stringContaining(
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
+          expect.stringContaining(
             "UPDATE products SET `order` = ? WHERE id = ?"
           ),
-          args: [2, 1],
-        })
+          2, 1,
       );
-      expect(mockDb.execSync).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sql: expect.stringContaining(
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
+        expect.stringContaining(
+
             "UPDATE products SET `order` = ? WHERE id = ?"
-          ),
-          args: [1, 3],
-        })
+        ),
+          1, 3,
       );
-      expect(mockDb.execSync).toHaveBeenCalledWith(
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
         expect.stringContaining("COMMIT")
       );
     });
 
-    test.skip("handles SQL errors and rolls back transaction", async () => {
+    test("handles SQL errors", async () => {
       const sqlError = new Error("SQL error during update");
-      mockDb.execSync.mockReturnValueOnce(undefined); // BEGIN
-      mockDb.execSync.mockImplementationOnce(() => {
+      mockDb.runAsync.mockImplementationOnce(() => {
         throw sqlError;
       });
-      mockDb.execSync.mockReturnValueOnce(undefined); // ROLLBACK
-
+      
       await expect(updateProductOrder(updates)).rejects.toThrow(sqlError);
-
-      expect(mockDb.execSync).toHaveBeenCalledWith(
+      
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
         expect.stringContaining("BEGIN TRANSACTION")
       );
-      expect(mockDb.execSync).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sql: expect.stringContaining(
-            "UPDATE products SET `order` = ? WHERE id = ?"
-          ),
-          args: [2, 1],
-        })
-      );
-      expect(mockDb.execSync).toHaveBeenCalledWith(
+
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
         expect.stringContaining("ROLLBACK")
       );
     });

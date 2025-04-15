@@ -7,7 +7,34 @@ export const initializeDatabase = async (
 ): Promise<SQLite.SQLiteDatabase> => {
   if (!db) {
     db = await SQLite.openDatabaseAsync(databaseName);
-    // Initialize tables if needed here, or in an initDatabase function called elsewhere
+    console.log('Database opened successfully.');
+    // Create initial tables if they don't exist using runAsync
+    try {
+      await Promise.all([
+        db.runAsync(`
+          CREATE TABLE IF NOT EXISTS products (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            quantity INTEGER NOT NULL,
+            \`order\` INTEGER NOT NULL DEFAULT 0
+          );
+        `),
+        db.runAsync(`
+          CREATE TABLE IF NOT EXISTS quantity_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            productId INTEGER NOT NULL,
+            quantity INTEGER NOT NULL,
+            date TEXT NOT NULL,
+            UNIQUE(productId, date),
+            FOREIGN KEY(productId) REFERENCES products(id) ON DELETE CASCADE
+          );
+        `),
+      ]);
+      console.log('Initial tables created or already exist.');
+    } catch (error) {
+      console.error('Error creating initial tables:', error);
+      throw error; // Re-throw the error to indicate initialization failure
+    }
   }
   return db;
 };
@@ -132,23 +159,6 @@ const repairDatabaseSchema = (tableName: string) => {
       }
     });
   }
-};
-
-export const initDatabase = () => {
-  return new Promise((resolve, reject) => {
-    try {
-      const database = getDb();
-      database.execSync(
-        "CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, quantity INTEGER NOT NULL, `order` INTEGER NOT NULL DEFAULT 0);"
-      );
-      database.execSync(
-        "CREATE TABLE IF NOT EXISTS quantity_history (id INTEGER PRIMARY KEY AUTOINCREMENT, productId INTEGER NOT NULL, quantity INTEGER NOT NULL, date TEXT NOT NULL, UNIQUE(productId, date), FOREIGN KEY(productId) REFERENCES products(id) ON DELETE CASCADE);"
-      );
-      resolve(true);
-    } catch (error) {
-      reject(error);
-    }
-  });
 };
 
 export const createProduct = (
@@ -328,12 +338,13 @@ export const saveProductHistory = async (
   });
 };
 
-export const deleteProduct = (id: number): Promise<void> => {
-  return new Promise((resolve, reject) => {
+export const deleteProduct = async (id: number): Promise<void> => {
+  return new Promise(async (resolve, reject) => {
     try {
-      getDb().execSync(`DELETE FROM products WHERE id = ${id};`);
+      await getDb().runAsync("DELETE FROM products WHERE id = ?", id);
       resolve();
     } catch (error) {
+      console.log('error:', error)
       reject(error);
     }
   });
@@ -343,20 +354,30 @@ export const updateProductOrder = (
   updates: { id: number; order: number }[]
 ): Promise<void> => {
   return new Promise((resolve, reject) => {
+    let database: SQLite.SQLiteDatabase; // No initial null
+
     try {
-      const database = getDb();
-      database.execSync("BEGIN TRANSACTION;");
+      database = getDb();
+      database.runAsync("BEGIN TRANSACTION;");
 
       updates.forEach(({ id, order }) => {
-        database.execSync(
-          `UPDATE products SET \`order\` = ${order} WHERE id = ${id};`
+        database.runAsync(
+          "UPDATE products SET `order` = ? WHERE id = ?",
+          order, id
         );
       });
 
-      database.execSync("COMMIT;");
+      database.runAsync("COMMIT;");
       resolve();
     } catch (error) {
-      database.execSync("ROLLBACK;");
+      // database should be defined here if getDb() succeeded
+      if (database) {
+        try {
+          database.runAsync("ROLLBACK;");
+        } catch (rollbackError) {
+          console.error("Error during rollback:", rollbackError);
+        }
+      }
       reject(error);
     }
   });
