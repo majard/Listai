@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">68.02% </span>
+                <span class="strong">72.51% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>117/172</span>
+                <span class='fraction'>124/171</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">62.5% </span>
+                <span class="strong">68.75% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>20/32</span>
+                <span class='fraction'>22/32</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">67.64% </span>
+                <span class="strong">72.18% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>115/170</span>
+                <span class='fraction'>122/169</span>
             </div>
         
             
@@ -531,7 +531,7 @@
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">20x</span>
+<span class="cline-any cline-yes">22x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
@@ -560,16 +560,16 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">20x</span>
+<span class="cline-any cline-yes">22x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">28x</span>
+<span class="cline-any cline-yes">30x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">28x</span>
+<span class="cline-any cline-yes">30x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -895,17 +895,17 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1355,18 +1355,18 @@ export const updateProductOrder = (
   });
 };
 &nbsp;
-export const updateProductName = <span class="fstat-no" title="function not covered" >(i</span>d: number, name: string): Promise&lt;void&gt; =&gt; {
-<span class="cstat-no" title="statement not covered" >  return new Promise(<span class="fstat-no" title="function not covered" >(r</span>esolve, reject) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const database = <span class="cstat-no" title="statement not covered" >getDb();</span>
-      const escapedName = <span class="cstat-no" title="statement not covered" >name.replace(/'/g, "''");</span>
-<span class="cstat-no" title="statement not covered" >      database.execSync(</span>
-        `UPDATE products SET name = '${escapedName.trim()}' WHERE id = ${id};`
+export const updateProductName = (id: number, name: string): Promise&lt;void&gt; =&gt; {
+  return new Promise(async (resolve, reject) =&gt; {
+    try {
+      const database = getDb();
+      await database.runAsync(
+        `UPDATE products SET name = ? WHERE id = ?;`,
+        [name.trim(), id] // Pass name and id as parameters
       );
-<span class="cstat-no" title="statement not covered" >      resolve();</span>
+      resolve();
     } catch (error) {
-<span class="cstat-no" title="statement not covered" >      console.error("Error updating product name:", error);</span>
-<span class="cstat-no" title="statement not covered" >      reject(error);</span>
+      console.error("Error updating product name:", error);
+      reject(error);
     }
   });
 };
@@ -1453,7 +1453,7 @@ export const consolidateProductHistory = <span class="fstat-no" title="function 
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-04-16T14:21:22.485Z
+                at 2025-04-16T15:01:04.936Z
             </div>
         <script src="../prettify.js"></script>
         <script>

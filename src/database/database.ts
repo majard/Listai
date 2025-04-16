@@ -369,12 +369,12 @@ export const updateProductOrder = (
 };
 
 export const updateProductName = (id: number, name: string): Promise<void> => {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     try {
       const database = getDb();
-      const escapedName = name.replace(/'/g, "''");
-      database.execSync(
-        `UPDATE products SET name = '${escapedName.trim()}' WHERE id = ${id};`
+      await database.runAsync(
+        `UPDATE products SET name = ? WHERE id = ?;`,
+        [name.trim(), id] // Pass name and id as parameters
       );
       resolve();
     } catch (error) {

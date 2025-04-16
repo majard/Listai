@@ -47,6 +47,10 @@ describe("Database Functions", () => {
     // Clear all mock implementations and call history
     jest.clearAllMocks();
 
+    (SQLite.openDatabaseAsync as jest.Mock).mockReturnValue(mockDb);
+
+    initializeDatabase();
+
     // Reset the return values of the mockDb functions
     mockDb.getFirstSync.mockReset();
     mockDb.runAsync.mockReset();
@@ -55,8 +59,6 @@ describe("Database Functions", () => {
     mockDb.exec.mockReset();
     mockDb.getDb.mockReset(); // Reset getDb as well
 
-    (SQLite.openDatabaseAsync as jest.Mock).mockReturnValue(mockDb);
-    initializeDatabase(); // Call the actual initializeDatabase function
     jest.spyOn(console, "error").mockImplementation(() => {});
   });
 
@@ -255,7 +257,9 @@ describe("Database Functions", () => {
       await updateProductQuantity(1, 10);
 
       expect(mockDb.runAsync).toHaveBeenCalledWith(
-        expect.stringContaining("UPDATE products SET quantity = ? WHERE id = ?"),
+        expect.stringContaining(
+          "UPDATE products SET quantity = ? WHERE id = ?"
+        ),
         [10, 1]
       );
     });
@@ -269,7 +273,9 @@ describe("Database Functions", () => {
       await expect(updateProductQuantity(1, 10)).rejects.toThrow(sqlError);
 
       expect(mockDb.runAsync).toHaveBeenCalledWith(
-        expect.stringContaining("UPDATE products SET quantity = ? WHERE id = ?"),
+        expect.stringContaining(
+          "UPDATE products SET quantity = ? WHERE id = ?"
+        ),
         [10, 1]
       );
     });
@@ -280,9 +286,9 @@ describe("Database Functions", () => {
       mockDb.runAsync.mockReturnValueOnce({ rowsAffected: 1 });
       await deleteProduct(1);
       expect(mockDb.runAsync).toHaveBeenCalledWith(
-          "DELETE FROM products WHERE id = ?",
-          1,
-        )
+        "DELETE FROM products WHERE id = ?",
+        1
+      );
     });
 
     test("handles SQL errors", async () => {
@@ -293,8 +299,8 @@ describe("Database Functions", () => {
       await expect(deleteProduct(1)).rejects.toThrow(sqlError);
       expect(mockDb.runAsync).toHaveBeenCalledWith(
         "DELETE FROM products WHERE id = ?",
-        1,
-      )
+        1
+      );
     });
   });
 
@@ -316,17 +322,14 @@ describe("Database Functions", () => {
         expect.stringContaining("BEGIN TRANSACTION")
       );
       expect(mockDb.runAsync).toHaveBeenCalledWith(
-          expect.stringContaining(
-            "UPDATE products SET `order` = ? WHERE id = ?"
-          ),
-          2, 1,
+        expect.stringContaining("UPDATE products SET `order` = ? WHERE id = ?"),
+        2,
+        1
       );
       expect(mockDb.runAsync).toHaveBeenCalledWith(
-        expect.stringContaining(
-
-            "UPDATE products SET `order` = ? WHERE id = ?"
-        ),
-          1, 3,
+        expect.stringContaining("UPDATE products SET `order` = ? WHERE id = ?"),
+        1,
+        3
       );
       expect(mockDb.runAsync).toHaveBeenCalledWith(
         expect.stringContaining("COMMIT")
@@ -338,9 +341,9 @@ describe("Database Functions", () => {
       mockDb.runAsync.mockImplementationOnce(() => {
         throw sqlError;
       });
-      
+
       await expect(updateProductOrder(updates)).rejects.toThrow(sqlError);
-      
+
       expect(mockDb.runAsync).toHaveBeenCalledWith(
         expect.stringContaining("BEGIN TRANSACTION")
       );
@@ -411,47 +414,26 @@ describe("Database Functions", () => {
   });
 
   describe("updateProductName", () => {
-    test.skip("updates product name successfully", async () => {
-      mockDb.execSync.mockReturnValueOnce({ rowsAffected: 1 });
+    test("updates product name successfully", async () => {
+      mockDb.runAsync.mockReturnValueOnce({ rowsAffected: 1 });
       await updateProductName(1, "New Product Name");
-      expect(mockDb.execSync).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sql: expect.stringContaining(
-            "UPDATE products SET name = ? WHERE id = ?"
-          ),
-          args: ["New Product Name", 1],
-        })
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
+        expect.stringContaining("UPDATE products SET name = ? WHERE id = ?"),
+        ["New Product Name", 1]
       );
     });
 
-    test.skip("handles SQL errors", async () => {
+    test("handles SQL errors", async () => {
       const sqlError = new Error("SQL error");
-      mockDb.execSync.mockImplementationOnce(() => {
+      mockDb.runAsync.mockImplementationOnce(() => {
         throw sqlError;
       });
       await expect(updateProductName(1, "New Product Name")).rejects.toThrow(
         sqlError
       );
-      expect(mockDb.execSync).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sql: expect.stringContaining(
-            "UPDATE products SET name = ? WHERE id = ?"
-          ),
-          args: ["New Product Name", 1],
-        })
-      );
-    });
-
-    test.skip("escapes single quotes in product names", async () => {
-      mockDb.execSync.mockReturnValueOnce({ rowsAffected: 1 });
-      await updateProductName(1, "Product's Name");
-      expect(mockDb.execSync).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sql: expect.stringContaining(
-            "UPDATE products SET name = ? WHERE id = ?"
-          ),
-          args: ["Product''s Name", 1],
-        })
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
+        expect.stringContaining("UPDATE products SET name = ? WHERE id = ?"),
+        ["New Product Name", 1]
       );
     });
   });
