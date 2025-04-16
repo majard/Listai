@@ -361,17 +361,17 @@ describe("Database Functions", () => {
       },
     ];
 
-    test.skip("retrieves product history by ID", async () => {
+    test("retrieves product history by ID", async () => {
       mockDb.getAllSync.mockReturnValueOnce(mockHistory);
       const history = await getProductHistory("1");
       expect(mockDb.getAllSync).toHaveBeenCalledWith(
         "SELECT * FROM quantity_history WHERE productId = ? ORDER BY date DESC;",
-        ["1"]
+        [1]
       );
       expect(history).toEqual(mockHistory);
     });
 
-    test.skip("retrieves product history by name", async () => {
+    test("retrieves product history by name", async () => {
       mockDb.getFirstSync.mockReturnValueOnce({ id: 1 });
       mockDb.getAllSync.mockReturnValueOnce(mockHistory);
       const result = await getProductHistory("Test Product");
@@ -386,7 +386,7 @@ describe("Database Functions", () => {
       expect(result).toEqual(mockHistory);
     });
 
-    test.skip("returns empty array when product not found by name", async () => {
+    test("returns empty array when product not found by name", async () => {
       mockDb.getFirstSync.mockReturnValueOnce(null);
       const result = await getProductHistory("Nonexistent Product");
       expect(mockDb.getFirstSync).toHaveBeenCalledWith(
@@ -397,7 +397,7 @@ describe("Database Functions", () => {
       expect(result).toEqual([]);
     });
 
-    test.skip("handles SQL errors", async () => {
+    test("handles SQL errors", async () => {
       const sqlError = new Error("SQL error");
       mockDb.getAllSync.mockImplementationOnce(() => {
         throw sqlError;
@@ -405,7 +405,7 @@ describe("Database Functions", () => {
       await expect(getProductHistory("1")).rejects.toThrow(sqlError);
       expect(mockDb.getAllSync).toHaveBeenCalledWith(
         "SELECT * FROM quantity_history WHERE productId = ? ORDER BY date DESC;",
-        ["1"]
+        [1]
       );
     });
   });

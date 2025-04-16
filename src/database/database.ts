@@ -7,7 +7,6 @@ export const initializeDatabase = async (
 ): Promise<SQLite.SQLiteDatabase> => {
   if (!db) {
     db = await SQLite.openDatabaseAsync(databaseName);
-    console.log('Database opened successfully.');
     // Create initial tables if they don't exist using runAsync
     try {
       await Promise.all([
@@ -30,7 +29,6 @@ export const initializeDatabase = async (
           );
         `),
       ]);
-      console.log('Initial tables created or already exist.');
     } catch (error) {
       console.error('Error creating initial tables:', error);
       throw error; // Re-throw the error to indicate initialization failure
@@ -83,7 +81,6 @@ const getExistingColumns = (tableName: string): string[] => {
     const result = getDb().getAllSync(`PRAGMA table_info(${tableName});`) as {
       name: string;
     }[];
-    console.log("result", result);
     return result.map((columnInfo) => columnInfo.name);
   } catch (error) {
     console.error(`Error getting column info for ${tableName}:`, error);
@@ -97,20 +94,12 @@ const addMissingColumn = (
   columnType: string,
   defaultValue: any
 ) => {
-  console.log(
-    "Adding missing column:",
-    columnName,
-    columnType,
-    "\ndefault:",
-    defaultValue
-  );
   const defaultValueClause =
     typeof defaultValue !== "undefined" ? `DEFAULT ${defaultValue}` : "";
   const alterStatement = `ALTER TABLE ${tableName} ADD COLUMN \`${columnName}\` ${columnType.replace(
     "NOT NULL",
     ""
   )}${defaultValueClause};`;
-  console.log("alterStatement", alterStatement);
   getDb().execSync(alterStatement);
 };
 
@@ -138,17 +127,8 @@ const repairDatabaseSchema = (tableName: string) => {
     getDb().execSync(createStatement);
   } else {
     const existingColumns = getExistingColumns(tableName);
-    console.log("existingColumns", existingColumns);
-    console.log("columns", columns);
     columns.forEach((expectedColumn) => {
       if (!existingColumns.includes(expectedColumn.name)) {
-        console.log(
-          `Processing missing column: ${expectedColumn.name}, type: ${
-            expectedColumn.type
-          }, default: ${
-            expectedColumn.default
-          } (type: ${typeof expectedColumn.default})`
-        ); // <--- ADD THIS LINE
 
         addMissingColumn(
           tableName,
@@ -251,29 +231,34 @@ export const getProductHistory = (
   return new Promise(async (resolve, reject) => {
     try {
       const database = getDb();
-      let query: string;
+      const query = `SELECT * FROM quantity_history WHERE productId = ? ORDER BY date DESC;`;
       let params: any[] = [];
 
       if (!isNaN(parseInt(identifier, 10))) {
-        query = `SELECT * FROM quantity_history WHERE productId = ${parseInt(
-          identifier,
-          10
-        )} ORDER BY date DESC;`;
+        params = [parseInt(identifier, 10)];
       } else {
-        const product = database.getFirstSync(
-          `SELECT id FROM products WHERE name = '${identifier}';`
-        ) as { id: number } | undefined;
+        const product = database.getFirstSync<{ id: number }>(
+          `SELECT id FROM products WHERE name = ?;`,
+          [identifier]
+        );
         if (!product) {
           resolve([]);
           return;
         }
-        query = `SELECT * FROM quantity_history WHERE productId = ${product.id} ORDER BY date DESC;`;
+        params = [product.id];
       }
-
-      const result = database.getAllSync(query, params) as QuantityHistory[];
+      const genericRows: any[] = database.getAllSync(query, params);
+      const result: QuantityHistory[] = genericRows.map(row => ({
+        id: row.id,
+        productId: row.productId,
+        quantity: row.quantity,
+        date: row.date,
+        // Ensure all properties of QuantityHistory are here
+      }));
       resolve(result);
     } catch (error: any) {
-      // ... error handling ...
+      console.error("Error fetching product history:", error);
+      reject(error);
     }
   });
 };
