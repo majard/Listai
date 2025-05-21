@@ -441,34 +441,26 @@ describe("Database Functions", () => {
   describe("saveProductHistoryForSingleProduct", () => {
     const mockDate = new Date("2025-04-09T10:00:00.000Z");
 
-    test.skip("saves product history successfully", async () => {
-      mockDb.execSync.mockReturnValueOnce({ rowsAffected: 1 });
+    test("saves product history successfully for single product", async () => {
+      mockDb.runAsync.mockReturnValueOnce({ rowsAffected: 1 });
       await saveProductHistoryForSingleProduct(1, 5, mockDate);
-      expect(mockDb.execSync).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sql: expect.stringContaining(
-            "INSERT INTO quantity_history (productId, quantity, date) VALUES (?, ?, ?)"
-          ),
-          args: [1, 5, mockDate.toISOString()],
-        })
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
+        "INSERT INTO quantity_history (productId, quantity, date) VALUES (?, ?, ?);",
+        [1, 5, mockDate.toISOString()]
       );
     });
 
-    test.skip("handles SQL errors", async () => {
+    test("handles SQL errors", async () => {
       const sqlError = new Error("SQL error");
-      mockDb.execSync.mockImplementationOnce(() => {
+      mockDb.runAsync.mockImplementationOnce(() => {
         throw sqlError;
       });
       await expect(
         saveProductHistoryForSingleProduct(1, 5, new Date())
       ).rejects.toThrow(sqlError);
-      expect(mockDb.execSync).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sql: expect.stringContaining(
-            "INSERT INTO quantity_history (productId, quantity, date) VALUES (?, ?, ?)"
-          ),
-          args: [1, 5, expect.any(String)], // We can't predict the exact date string here
-        })
+      expect(mockDb.runAsync).toHaveBeenCalledWith(
+        "INSERT INTO quantity_history (productId, quantity, date) VALUES (?, ?, ?);",
+          [1, 5, expect.any(String)] // We can't predict the exact date
       );
     });
   });

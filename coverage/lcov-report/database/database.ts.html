@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">72.51% </span>
+                <span class="strong">77.19% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>124/171</span>
+                <span class='fraction'>132/171</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">68.75% </span>
+                <span class="strong">75% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>22/32</span>
+                <span class='fraction'>24/32</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">72.18% </span>
+                <span class="strong">76.92% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>122/169</span>
+                <span class='fraction'>130/169</span>
             </div>
         
             
@@ -524,14 +524,15 @@
 <a name='L459'></a><a href='#L459'>459</a>
 <a name='L460'></a><a href='#L460'>460</a>
 <a name='L461'></a><a href='#L461'>461</a>
-<a name='L462'></a><a href='#L462'>462</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L462'></a><a href='#L462'>462</a>
+<a name='L463'></a><a href='#L463'>463</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">22x</span>
+<span class="cline-any cline-yes">24x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
@@ -560,16 +561,16 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">22x</span>
+<span class="cline-any cline-yes">24x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">30x</span>
+<span class="cline-any cline-yes">32x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">30x</span>
+<span class="cline-any cline-yes">32x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -915,17 +916,18 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1371,22 +1373,23 @@ export const updateProductName = (id: number, name: string): Promise&lt;void&gt;
   });
 };
 &nbsp;
-export const saveProductHistoryForSingleProduct = <span class="fstat-no" title="function not covered" >as</span>ync (
+export const saveProductHistoryForSingleProduct = async (
   productId: number,
   quantity: number,
   date: Date
 ): Promise&lt;void&gt; =&gt; {
-<span class="cstat-no" title="statement not covered" >  return new Promise(<span class="fstat-no" title="function not covered" >(r</span>esolve, reject) =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >    try {</span>
-      const database = <span class="cstat-no" title="statement not covered" >getDb();</span>
-      const dateToSave = <span class="cstat-no" title="statement not covered" >date.toISOString();</span>
-<span class="cstat-no" title="statement not covered" >      database.execSync(</span>
-        `INSERT INTO quantity_history (productId, quantity, date) VALUES (${productId}, ${quantity}, '${dateToSave}');`
+  return new Promise((resolve, reject) =&gt; {
+    try {
+      const database = getDb();
+      const dateToSave = date.toISOString();
+      database.runAsync(
+        `INSERT INTO quantity_history (productId, quantity, date) VALUES (?, ?, ?);`, 
+        [productId, quantity, dateToSave]
       );
-<span class="cstat-no" title="statement not covered" >      resolve();</span>
+      resolve();
     } catch (error) {
-<span class="cstat-no" title="statement not covered" >      console.error("Error saving history for product ID:", productId, error);</span>
-<span class="cstat-no" title="statement not covered" >      reject(error);</span>
+      console.error("Error saving history for product ID:", productId, error);
+      reject(error);
     }
   });
 };
@@ -1453,7 +1456,7 @@ export const consolidateProductHistory = <span class="fstat-no" title="function 
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-04-16T15:01:04.936Z
+                at 2025-05-21T23:52:09.587Z
             </div>
         <script src="../prettify.js"></script>
         <script>

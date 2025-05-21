@@ -393,8 +393,9 @@ export const saveProductHistoryForSingleProduct = async (
     try {
       const database = getDb();
       const dateToSave = date.toISOString();
-      database.execSync(
-        `INSERT INTO quantity_history (productId, quantity, date) VALUES (${productId}, ${quantity}, '${dateToSave}');`
+      database.runAsync(
+        `INSERT INTO quantity_history (productId, quantity, date) VALUES (?, ?, ?);`, 
+        [productId, quantity, dateToSave]
       );
       resolve();
     } catch (error) {
