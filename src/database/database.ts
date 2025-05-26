@@ -15,7 +15,9 @@ export const initializeDatabase = async (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL UNIQUE,
             quantity INTEGER NOT NULL,
-            \`order\` INTEGER NOT NULL DEFAULT 0
+            \`order\` INTEGER NOT NULL DEFAULT 0,
+            listId INTEGER NOT NULL DEFAULT 1,
+            FOREIGN KEY(listId) REFERENCES lists(id) ON DELETE CASCADE
           );
         `),
         db.runAsync(`
@@ -26,6 +28,13 @@ export const initializeDatabase = async (
             date TEXT NOT NULL,
             UNIQUE(productId, date),
             FOREIGN KEY(productId) REFERENCES products(id) ON DELETE CASCADE
+          );
+        `),
+        db.runAsync(`
+          CREATE TABLE IF NOT EXISTS lists (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            \`order\` INTEGER NOT NULL DEFAULT 0
           );
         `),
       ]);
@@ -51,6 +60,7 @@ export interface Product {
   name: string;
   quantity: number;
   order: number;
+  listId: number;
 }
 
 export interface QuantityHistory {
@@ -58,6 +68,12 @@ export interface QuantityHistory {
   productId: number;
   quantity: number;
   date: string;
+}
+
+export interface List {
+  id: number;
+  name: string;
+  order: number;
 }
 
 const expectedSchemas = {
@@ -141,25 +157,11 @@ const repairDatabaseSchema = (tableName: string) => {
   }
 };
 
-export const createProduct = (
-  name: string,
-  quantity: number
-): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    try {
-      getDb().execSync(
-        `INSERT INTO products (name, quantity) VALUES ('${name.trim()}', ${quantity});`
-      );
-      resolve();
-    } catch (error) {
-      reject(error);
-    }
-  });
-};
 
 export const addProduct = async (
   name: string,
-  quantity: number
+  quantity: number,
+  listId: number
 ): Promise<number> => {
   const db = getDb();
   try {
@@ -174,8 +176,8 @@ export const addProduct = async (
     }
     // Insert the new product using a parameterized query
     await db.runAsync(
-      "INSERT INTO products (name, quantity) VALUES (?, ?)",
-      [name.trim(), quantity] // Pass name and quantity as parameters
+      "INSERT INTO products (name, quantity, listId) VALUES (?, ?, ?)",
+      [name.trim(), quantity, listId] // Pass name and quantity as parameters
     );
 
     // Get the last inserted ID
@@ -195,12 +197,13 @@ export const addProduct = async (
   }
 };
 
-export const getProducts = (): Promise<Product[]> => {
+export const getProducts = (listId: number): Promise<Product[]> => {
   return new Promise(async (resolve, reject) => {
     try {
       const database = getDb();
       const result = database.getAllSync(
-        "SELECT * FROM products ORDER BY `order` ASC;"
+        "SELECT * FROM products WHERE listId = ? ORDER BY `order` ASC;",
+        [listId]
       );
       resolve(result as Product[]);
     } catch (error: any) {
