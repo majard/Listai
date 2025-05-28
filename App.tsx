@@ -9,6 +9,8 @@ import { initializeDatabase } from './src/database/database';
 import HomeScreen from './src/screens/HomeScreen';
 import AddProductScreen from './src/screens/AddProductScreen';
 import EditProductScreen from './src/screens/EditProductScreen';
+import ListsScreen from './src/screens/ListsScreen';
+import AddListScreen from './src/screens/AddListScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -32,7 +34,7 @@ export default function App() {
         <PaperProvider theme={theme}>
           <NavigationContainer>
             <Stack.Navigator
-              initialRouteName="Home"
+              initialRouteName="Lists"
               screenOptions={{
                 headerStyle: {
                   backgroundColor: theme.colors.primary,
@@ -43,12 +45,18 @@ export default function App() {
                 },
               }}
             >
-              <Stack.Screen 
-                name="Home" 
-                component={HomeScreen} 
-                options={{ title: 'Lista de Produção', headerShown : false }}
+            <Stack.Screen 
+              name="Home" 
+              component={HomeScreen} 
+              options={{ title: 'Lista de Produção', headerShown : false }}
+            />
+            
+            <Stack.Screen 
+                name="Lists" 
+                component={ListsScreen} 
+                options={{ title: 'Listas', headerShown : false }}
               />
-              <Stack.Screen 
+             <Stack.Screen 
                 name="AddProduct" 
                 component={AddProductScreen} 
                 options={{ title: 'Adicionar Produto' }}
@@ -58,6 +66,10 @@ export default function App() {
                 component={EditProductScreen} 
                 // header was interfering with the other views placement
                 options={{ title: 'Editar Produto', headerShown: false }}
+              />
+              <Stack.Screen
+              name="AddList"
+              component={AddListScreen}
               />
             </Stack.Navigator>
           </NavigationContainer>

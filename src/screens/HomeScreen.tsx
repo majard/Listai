@@ -22,7 +22,7 @@ import {
   Divider,
 } from "react-native-paper";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { NativeStackNavigationProp, NativeStackScreenProps } from "@react-navigation/native-stack";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DraggableFlatList, {
   ScaleDecorator,
@@ -51,6 +51,7 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
   "Home"
 >;
+type HomeScreenProps = NativeStackScreenProps<RootStackParamList, "Home">;
 
 type Styles = {
   container: ViewStyle;
@@ -108,12 +109,13 @@ const debounce = (func, delay) => {
 };
 
 export default function HomeScreen() {
+  const route = useRoute<HomeScreenProps["route"]>(); 
+  const listId = route.params?.listId ?? 1;
   const [products, setProducts] = useState<Product[]>([]);
   const [isAdjusting, setIsAdjusting] = useState(false);
   const [adjustmentId, setAdjustmentId] = useState<number | null>(null);
   const [adjustmentIncrement, setAdjustmentIncrement] = useState(false);
   const navigation = useNavigation<HomeScreenNavigationProp>();
-  const route = useRoute();
   const theme = useTheme();
   const [isMounted, setIsMounted] = useState(true);
   const [sortOrder, setSortOrder] = useState<
@@ -176,7 +178,7 @@ export default function HomeScreen() {
 
   const loadProducts = async () => {
     try {
-      const loadedProducts = await getProducts();
+      const loadedProducts = await getProducts(listId);
       if (isMounted) {
         setProducts(loadedProducts);
       }
@@ -211,7 +213,7 @@ export default function HomeScreen() {
   useEffect(() => {
     const loadAndSortProducts = async () => {
       try {
-        const loadedProducts = await getProducts();
+        const loadedProducts = await getProducts(listId);
         if (isMounted) {
           const sortedProducts = sortProducts(loadedProducts);
           setProducts([...sortedProducts]);
@@ -506,7 +508,7 @@ export default function HomeScreen() {
     }
 
     const [currentProduct, ...rest] = remainingProducts;
-    const existingProducts = await getProducts();
+    const existingProducts = await getProducts(listId);
     // First, check for exact name matches (case-insensitive)
     const exactMatch = existingProducts.find(
       (p) => p.name.toLowerCase() === currentProduct.originalName.toLowerCase()
@@ -565,7 +567,7 @@ export default function HomeScreen() {
   ) => {
     try {
       // Check for exact name match again (case-insensitive)
-      const existingProducts = await getProducts();
+      const existingProducts = await getProducts(listId);
       const productHistory = await getProductHistory(product.originalName);
       const exactMatch = existingProducts.find(
         (p) => p.name.toLowerCase() === product.originalName.toLowerCase()
@@ -603,7 +605,7 @@ export default function HomeScreen() {
       const lines = text.split("\n");
       const importDate = parseImportDate(lines);
       const importedProducts = parseImportProducts(lines);
-      const existingProducts = await getProducts();
+      const existingProducts = await getProducts(listId);
 
       await processNextProduct(importedProducts, importDate);
     } catch (error) {
@@ -644,7 +646,7 @@ export default function HomeScreen() {
   const handleAcceptAllSimilar = async () => {
     try {
       if (!currentImportItem) return;
-      const existingProducts = await getProducts();
+      const existingProducts = await getProducts(listId);
 
       // Get all remaining products that have similar matches
       const productsToUpdate = currentImportItem.remainingProducts.filter(

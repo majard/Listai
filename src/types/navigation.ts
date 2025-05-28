@@ -1,9 +1,11 @@
 import { Product } from '../database/database';
 
 export type RootStackParamList = {
-  Home: { shouldRefresh?: boolean };
+  Home: { shouldRefresh?: boolean, listId?: number };
   AddProduct: undefined;
   EditProduct: { product: Product };
+  Lists: undefined;
+  AddList: undefined;
 };
 
 declare global {

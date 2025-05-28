@@ -90,6 +90,11 @@ const expectedSchemas = {
     { name: "date", type: "TEXT NOT NULL" },
     { name: "UNIQUE", type: "(productId, date)" },
   ],
+  lists: [
+    { name: "id", type: "INTEGER PRIMARY KEY AUTOINCREMENT", default: 1},
+    { name: "name", type: "TEXT NOT NULL UNIQUE" },
+    { name: "order", type: "INTEGER NOT NULL", default: 0 },
+  ],
 };
 
 const getExistingColumns = (tableName: string): string[] => {
@@ -157,11 +162,47 @@ const repairDatabaseSchema = (tableName: string) => {
   }
 };
 
+export const addList = async (name: string, order: number = 0): Promise<number> => {
+  const db = getDb();
+  try {
+    // Checa se já existe uma lista com o mesmo nome
+    const existingList = db.getFirstSync<{ id: number }>(
+      "SELECT id FROM lists WHERE name = ?",
+      [name.trim()]
+    );
+
+    if (existingList) {
+      return existingList.id;
+    }
+
+    // Insere nova lista
+    await db.runAsync(
+      "INSERT INTO lists (name, `order`) VALUES (?, ?);",
+      [name.trim(), order]
+    );
+
+    // Retorna o ID da lista inserida
+    const lastInserted = db.getFirstSync<{ id: number }>(
+      "SELECT last_insert_rowid() as id;"
+    );
+
+    if (lastInserted?.id) {
+      return lastInserted.id;
+    } else {
+      throw new Error("Falha ao obter ID da lista inserida.");
+    }
+  } catch (error: any) {
+    console.error("Erro ao adicionar lista:", error);
+    throw new Error(error.message || "Erro desconhecido.");
+  }
+};
+
+
 
 export const addProduct = async (
   name: string,
   quantity: number,
-  listId: number
+  listId?: number
 ): Promise<number> => {
   const db = getDb();
   try {
@@ -177,7 +218,7 @@ export const addProduct = async (
     // Insert the new product using a parameterized query
     await db.runAsync(
       "INSERT INTO products (name, quantity, listId) VALUES (?, ?, ?)",
-      [name.trim(), quantity, listId] // Pass name and quantity as parameters
+      [name.trim(), quantity, listId ?? 1] // Pass name and quantity as parameters
     );
 
     // Get the last inserted ID
@@ -195,6 +236,19 @@ export const addProduct = async (
     console.error("Error adding product:", error);
     throw new Error(error.message);
   }
+};
+
+export const getLists = (): Promise<List[]> => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const database = getDb();
+      console.log('gettin lists');
+      const result = database.getAllSync("SELECT * FROM lists ORDER BY `order` ASC;");
+      resolve(result as List[]);
+    } catch (error) {
+      reject(error);
+    }
+  });
 };
 
 export const getProducts = (listId: number): Promise<Product[]> => {
