@@ -39,7 +39,7 @@ export const initializeDatabase = async (
         `),
       ]);
     } catch (error) {
-      console.error('Error creating initial tables:', error);
+      console.error("Error creating initial tables:", error);
       throw error; // Re-throw the error to indicate initialization failure
     }
   }
@@ -82,6 +82,7 @@ const expectedSchemas = {
     { name: "name", type: "TEXT NOT NULL UNIQUE" },
     { name: "quantity", type: "INTEGER NOT NULL" },
     { name: "order", type: "INTEGER NOT NULL", default: 0 },
+    { name: "listId", type: "INTEGER NOT NULL", default: 1 },
   ],
   quantity_history: [
     { name: "id", type: "INTEGER PRIMARY KEY AUTOINCREMENT" },
@@ -91,7 +92,7 @@ const expectedSchemas = {
     { name: "UNIQUE", type: "(productId, date)" },
   ],
   lists: [
-    { name: "id", type: "INTEGER PRIMARY KEY AUTOINCREMENT", default: 1},
+    { name: "id", type: "INTEGER PRIMARY KEY AUTOINCREMENT", default: 1 },
     { name: "name", type: "TEXT NOT NULL UNIQUE" },
     { name: "order", type: "INTEGER NOT NULL", default: 0 },
   ],
@@ -150,7 +151,6 @@ const repairDatabaseSchema = (tableName: string) => {
     const existingColumns = getExistingColumns(tableName);
     columns.forEach((expectedColumn) => {
       if (!existingColumns.includes(expectedColumn.name)) {
-
         addMissingColumn(
           tableName,
           expectedColumn.name,
@@ -162,7 +162,10 @@ const repairDatabaseSchema = (tableName: string) => {
   }
 };
 
-export const addList = async (name: string, order: number = 0): Promise<number> => {
+export const addList = async (
+  name: string,
+  order: number = 0
+): Promise<number> => {
   const db = getDb();
   try {
     // Checa se já existe uma lista com o mesmo nome
@@ -176,10 +179,10 @@ export const addList = async (name: string, order: number = 0): Promise<number> 
     }
 
     // Insere nova lista
-    await db.runAsync(
-      "INSERT INTO lists (name, `order`) VALUES (?, ?);",
-      [name.trim(), order]
-    );
+    await db.runAsync("INSERT INTO lists (name, `order`) VALUES (?, ?);", [
+      name.trim(),
+      order,
+    ]);
 
     // Retorna o ID da lista inserida
     const lastInserted = db.getFirstSync<{ id: number }>(
@@ -196,8 +199,6 @@ export const addList = async (name: string, order: number = 0): Promise<number> 
     throw new Error(error.message || "Erro desconhecido.");
   }
 };
-
-
 
 export const addProduct = async (
   name: string,
@@ -242,8 +243,10 @@ export const getLists = (): Promise<List[]> => {
   return new Promise(async (resolve, reject) => {
     try {
       const database = getDb();
-      console.log('gettin lists');
-      const result = database.getAllSync("SELECT * FROM lists ORDER BY `order` ASC;");
+      console.log("gettin lists");
+      const result = database.getAllSync(
+        "SELECT * FROM lists ORDER BY `order` ASC;"
+      );
       resolve(result as List[]);
     } catch (error) {
       reject(error);
@@ -305,7 +308,7 @@ export const getProductHistory = (
         params = [product.id];
       }
       const genericRows: any[] = database.getAllSync(query, params);
-      const result: QuantityHistory[] = genericRows.map(row => ({
+      const result: QuantityHistory[] = genericRows.map((row) => ({
         id: row.id,
         productId: row.productId,
         quantity: row.quantity,
@@ -386,7 +389,7 @@ export const deleteProduct = async (id: number): Promise<void> => {
       await getDb().runAsync("DELETE FROM products WHERE id = ?", id);
       resolve();
     } catch (error) {
-      console.log('error:', error)
+      console.log("error:", error);
       reject(error);
     }
   });
@@ -405,7 +408,8 @@ export const updateProductOrder = (
       updates.forEach(({ id, order }) => {
         database.runAsync(
           "UPDATE products SET `order` = ? WHERE id = ?",
-          order, id
+          order,
+          id
         );
       });
 
@@ -451,7 +455,7 @@ export const saveProductHistoryForSingleProduct = async (
       const database = getDb();
       const dateToSave = date.toISOString();
       database.runAsync(
-        `INSERT INTO quantity_history (productId, quantity, date) VALUES (?, ?, ?);`, 
+        `INSERT INTO quantity_history (productId, quantity, date) VALUES (?, ?, ?);`,
         [productId, quantity, dateToSave]
       );
       resolve();
