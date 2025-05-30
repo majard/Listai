@@ -135,6 +135,8 @@ export default function HomeScreen() {
     similarProducts: Product[];
   } | null>(null);
 
+  console.log('listId:', listId);
+
   const openMenu = () => setMenuVisible(true);
   const closeMenu = () => setMenuVisible(false);
 
@@ -582,7 +584,8 @@ export default function HomeScreen() {
       // No exact match found, create new product
       const productId = await addProduct(
         product.originalName,
-        product.quantity
+        product.quantity,
+        listId,
       );
 
       if (importDate && !checkDateExists(productHistory, importDate)) {
@@ -1166,7 +1169,7 @@ export default function HomeScreen() {
       <FAB
         style={styles.fab}
         icon="plus"
-        onPress={() => navigation.navigate("AddProduct")}
+        onPress={() => navigation.navigate("AddProduct", {listId})}
         label="Adicionar Produto"
       />
       <View>
