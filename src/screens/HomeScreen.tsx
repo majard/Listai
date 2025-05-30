@@ -241,17 +241,6 @@ export default function HomeScreen() {
   );
 
   useEffect(() => {
-    const unsubscribe = navigation.addListener("focus", () => {
-      const params = route.params as { shouldRefresh?: boolean };
-      if (params?.shouldRefresh) {
-        loadProducts();
-        navigation.setParams({ shouldRefresh: false });
-      }
-    });
-    return unsubscribe;
-  }, [navigation, route.params]);
-
-  useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     if (isAdjusting && adjustmentId !== null) {
       const initialTimeout = setTimeout(() => {

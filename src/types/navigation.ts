@@ -1,7 +1,7 @@
 import { Product } from '../database/database';
 
 export type RootStackParamList = {
-  Home: { shouldRefresh?: boolean, listId?: number };
+  Home: { listId?: number };
   AddProduct: {listId: number};
   EditProduct: { product: Product };
   Lists: undefined;

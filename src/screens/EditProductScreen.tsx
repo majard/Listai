@@ -75,7 +75,7 @@ export default function EditProductScreen() {
     if (product?.id) {
       try {
         await updateProduct(product.id, parseInt(quantity));
-        navigation.navigate("Home", { shouldRefresh: true });
+        navigation.goBack();
       } catch (error) {
         console.error("Erro ao atualizar produto:", error);
       }
@@ -109,7 +109,7 @@ export default function EditProductScreen() {
             onPress: async () => {
               try {
                 await deleteProduct(product.id);
-                navigation.navigate("Home", { shouldRefresh: true });
+                navigation.goBack();
               } catch (error) {
                 console.error("Erro ao deletar produto:", error);
               }
