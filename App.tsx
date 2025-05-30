@@ -59,7 +59,7 @@ export default function App() {
              <Stack.Screen 
                 name="AddProduct" 
                 component={AddProductScreen} 
-                options={{ title: 'Adicionar Produto' }}
+                options={{ title: 'Adicionar Produto', headerShown: false }}
               />
               <Stack.Screen 
                 name="EditProduct" 

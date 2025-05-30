@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -21,7 +21,7 @@ import {
   Menu,
   Divider,
 } from "react-native-paper";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp, NativeStackScreenProps } from "@react-navigation/native-stack";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DraggableFlatList, {
@@ -232,6 +232,13 @@ export default function HomeScreen() {
       setIsMounted(false);
     };
   }, []);
+
+
+  useFocusEffect(
+    useCallback(() => {
+      loadProducts()
+    }, [])
+  );
 
   useEffect(() => {
     const unsubscribe = navigation.addListener("focus", () => {
