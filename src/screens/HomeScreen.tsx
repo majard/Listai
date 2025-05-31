@@ -21,8 +21,15 @@ import {
   Menu,
   Divider,
 } from "react-native-paper";
-import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/native";
-import { NativeStackNavigationProp, NativeStackScreenProps } from "@react-navigation/native-stack";
+import {
+  useNavigation,
+  useRoute,
+  useFocusEffect,
+} from "@react-navigation/native";
+import {
+  NativeStackNavigationProp,
+  NativeStackScreenProps,
+} from "@react-navigation/native-stack";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DraggableFlatList, {
   ScaleDecorator,
@@ -41,6 +48,9 @@ import {
   addProduct,
   consolidateProductHistory,
   QuantityHistory,
+  getListById,
+  updateListName,
+  deleteList,
 } from "../database/database";
 import { calculateSimilarity, preprocessName } from "../utils/similarityUtils";
 import { RootStackParamList } from "../types/navigation";
@@ -109,8 +119,11 @@ const debounce = (func, delay) => {
 };
 
 export default function HomeScreen() {
-  const route = useRoute<HomeScreenProps["route"]>(); 
+  const route = useRoute<HomeScreenProps["route"]>();
   const listId = route.params?.listId ?? 1;
+  const [listName, setListName] = useState("");
+  const [isEditingListName, setIsEditingListName] = useState(false);
+  const [listNameInput, setListNameInput] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [isAdjusting, setIsAdjusting] = useState(false);
   const [adjustmentId, setAdjustmentId] = useState<number | null>(null);
@@ -135,7 +148,7 @@ export default function HomeScreen() {
     similarProducts: Product[];
   } | null>(null);
 
-  console.log('listId:', listId);
+  console.log("listId:", listId);
 
   const openMenu = () => setMenuVisible(true);
   const closeMenu = () => setMenuVisible(false);
@@ -233,10 +246,9 @@ export default function HomeScreen() {
     };
   }, []);
 
-
   useFocusEffect(
     useCallback(() => {
-      loadProducts()
+      loadProducts();
     }, [])
   );
 
@@ -581,7 +593,7 @@ export default function HomeScreen() {
       const productId = await addProduct(
         product.originalName,
         product.quantity,
-        listId,
+        listId
       );
 
       if (importDate && !checkDateExists(productHistory, importDate)) {
@@ -854,7 +866,6 @@ export default function HomeScreen() {
                         <Pressable
                           key={product.id}
                           onPress={() => {
-
                             const updatedSimilarProducts = [
                               product,
                               ...similarProducts.filter(
@@ -1062,9 +1073,77 @@ export default function HomeScreen() {
 
   const styles = createHomeScreenStyles(theme);
 
+  useEffect(() => {
+    getListById(listId).then((list) => {
+      if (list) setListName(list.name);
+    });
+  }, [listId]);
+
+  const handleListNameEdit = () => {
+    setIsEditingListName(true);
+    setListNameInput(listName);
+  };
+
+  const handleListNameSave = async () => {
+    if (listNameInput.trim()) {
+      await updateListName(listId, listNameInput.trim());
+      setListName(listNameInput.trim());
+      setIsEditingListName(false);
+    }
+  };
+
+  const handleListDelete = async () => {
+    Alert.alert("Excluir Lista", "Tem certeza que deseja excluir esta lista?", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Excluir",
+        style: "destructive",
+        onPress: async () => {
+          await deleteList(listId);
+          navigation.goBack();
+        },
+      },
+    ]);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
+          {isEditingListName ? (
+            <>
+              <PaperTextInput
+                value={listNameInput}
+                onChangeText={setListNameInput}
+                style={{ flex: 1, marginRight: 8 }}
+                mode="outlined"
+                dense
+              />
+              <IconButton icon="check" iconColor={theme.colors.primary} onPress={handleListNameSave} />
+              <IconButton
+                icon="close"
+                iconColor={theme.colors.error}
+                onPress={() => setIsEditingListName(false)}
+              />
+            </>
+          ) : (
+            <>
+              <Text variant="titleLarge" style={{ flex: 1 }}>
+                {listName}
+              </Text>
+              <IconButton
+                icon="pencil"
+                iconColor={theme.colors.primary}
+                onPress={handleListNameEdit}
+              />
+            </>
+          )}
+          <IconButton
+            icon="delete"
+            iconColor={theme.colors.error}
+            onPress={handleListDelete}
+          />
+        </View>
         <View style={styles.searchContainer}>
           <PaperTextInput
             placeholder="Buscar produtos..."
@@ -1165,7 +1244,7 @@ export default function HomeScreen() {
       <FAB
         style={styles.fab}
         icon="plus"
-        onPress={() => navigation.navigate("AddProduct", {listId})}
+        onPress={() => navigation.navigate("AddProduct", { listId })}
         label="Adicionar Produto"
       />
       <View>

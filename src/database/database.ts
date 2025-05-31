@@ -521,3 +521,47 @@ export const consolidateProductHistory = async (
     throw error;
   }
 };
+
+export const getListById = (id: number): Promise<List | undefined> => {
+  return new Promise((resolve, reject) => {
+    try {
+      const database = getDb();
+      const result = database.getFirstSync(
+        "SELECT * FROM lists WHERE id = ?;",
+        [id]
+      );
+      resolve(result as List | undefined);
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
+export const updateListName = (id: number, name: string): Promise<void> => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const database = getDb();
+      await database.runAsync(
+        `UPDATE lists SET name = ? WHERE id = ?;`,
+        [name.trim(), id]
+      );
+      resolve();
+    } catch (error) {
+      console.error("Error updating list name:", error);
+      reject(error);
+    }
+  });
+};
+
+export const deleteList = (id: number): Promise<void> => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const database = getDb();
+      await database.runAsync(`DELETE FROM lists WHERE id = ?;`, [id]);
+      resolve();
+    } catch (error) {
+      console.error("Error deleting list:", error);
+      reject(error);
+    }
+  });
+};
