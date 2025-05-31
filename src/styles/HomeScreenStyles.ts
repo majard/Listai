@@ -82,7 +82,7 @@ export const createHomeScreenStyles = (theme: MD3Theme) => StyleSheet.create<Sty
   },
   list: { 
     padding: 16, 
-    paddingBottom: 160 
+    paddingBottom: 240
   },
   card: { 
     marginBottom: 16 

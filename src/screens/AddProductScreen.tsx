@@ -72,16 +72,16 @@ export default function AddProductScreen() {
           returnKeyType="done"
           testID="product-quantity-input"
         />
-        <TouchableOpacity
-          //mode="contained"
+        <Button
+          mode="contained"
           onPress={handleSubmit}
-          //style={styles.TouchableOpacity}
+          style={styles.button}
           disabled={false}
           testID="add-product-button"
         >
           <Text>Adicionar Produto</Text>
           
-        </TouchableOpacity>
+        </Button>
       </ScrollView>
     </KeyboardAvoidingView>
   );
