@@ -14,6 +14,7 @@ import {
   useTheme,
   Card,
   IconButton,
+  Menu,
 } from "react-native-paper";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import {
@@ -28,6 +29,8 @@ import {
   QuantityHistory,
   updateProductName,
   deleteProduct,
+  getLists,
+  updateProductList,
 } from "../database/database";
 import { RootStackParamList } from "../types/navigation";
 
@@ -49,7 +52,9 @@ export default function EditProductScreen() {
   const theme = useTheme();
   const [name, setName] = useState(product?.name || "");
   const [isEditingName, setIsEditingName] = useState(false);
-
+  const [lists, setLists] = useState<{ id: number; name: string }[]>([]);
+  const [listMenuVisible, setListMenuVisible] = useState(false);
+  const [selectedListId, setSelectedListId] = useState(product?.listId ?? 1);
 
   useEffect(() => {
     if (product) {
@@ -57,8 +62,9 @@ export default function EditProductScreen() {
       setName(product.name);
       loadHistory();
     }
+    getLists().then(setLists);
+    setSelectedListId(product?.listId ?? 1);
   }, []);
-
 
   const loadHistory = async () => {
     if (product?.name) { // Ensure product and id exist before calling
@@ -154,6 +160,15 @@ export default function EditProductScreen() {
     ],
   };
 
+  const handleChangeList = async (newListId: number) => {
+    if (product?.id && newListId !== selectedListId) {
+      await updateProductList(product.id, newListId);
+      setSelectedListId(newListId);
+      navigation.setParams({ product: { ...product, listId: newListId } });
+    }
+    setListMenuVisible(false);
+  };
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <ScrollView style={styles.container}>
@@ -166,7 +181,6 @@ export default function EditProductScreen() {
                 style={styles.nameInput}
                 mode="outlined"
                 testID="name-input"
-
               />
               <IconButton
                 icon="check"
@@ -207,6 +221,30 @@ export default function EditProductScreen() {
             iconColor={theme.colors.error}
             testID="delete-button"
           />
+        </View>
+
+        <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
+          <Menu
+            visible={listMenuVisible}
+            onDismiss={() => setListMenuVisible(false)}
+            anchor={
+              <Button
+                mode="outlined"
+                onPress={() => setListMenuVisible(true)}
+                style={{ marginBottom: 8 }}
+              >
+                {lists.find((l) => l.id === selectedListId)?.name || "Selecionar Lista"}
+              </Button>
+            }
+          >
+            {lists.map((list) => (
+              <Menu.Item
+                key={list.id}
+                onPress={() => handleChangeList(list.id)}
+                title={list.name}
+              />
+            ))}
+          </Menu>
         </View>
 
         <Card style={styles.card}>

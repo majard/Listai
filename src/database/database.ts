@@ -565,3 +565,19 @@ export const deleteList = (id: number): Promise<void> => {
     }
   });
 };
+
+export const updateProductList = (productId: number, newListId: number): Promise<void> => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const database = getDb();
+      await database.runAsync(
+        `UPDATE products SET listId = ? WHERE id = ?;`,
+        [newListId, productId]
+      );
+      resolve();
+    } catch (error) {
+      console.error("Error updating product listId:", error);
+      reject(error);
+    }
+  });
+};
