@@ -69,6 +69,7 @@ export default function App() {
               />
               <Stack.Screen
               name="AddList"
+              options={{title: 'Adicionar Lista'}}
               component={AddListScreen}
               />
             </Stack.Navigator>
