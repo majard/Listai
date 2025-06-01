@@ -76,12 +76,15 @@ export const createHomeScreenStyles = (theme: MD3Theme) => StyleSheet.create<Sty
     marginTop: 4,
   },
   button: {
-    paddingHorizontal: 8,
-    marginRight: 8,
+    marginRight: 4,
+    minHeight: 28,
+    minWidth: 80,
   },
   buttonText: {
     fontSize: 12,
-    margin: 0,
+    marginVertical: 6,
+    marginHorizontal: 16,
+    marginLeft: 24
   },
   list: { 
     padding: 16, 
