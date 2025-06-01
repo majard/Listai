@@ -54,7 +54,9 @@ export const createHomeScreenStyles = (theme: MD3Theme) => StyleSheet.create<Sty
     backgroundColor: '#f5f5f5',
   },
   header: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 8,
     backgroundColor: theme.colors.background,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
@@ -66,23 +68,24 @@ export const createHomeScreenStyles = (theme: MD3Theme) => StyleSheet.create<Sty
     backgroundColor: 'white',
     borderRadius: 5,
     paddingHorizontal: 10,
+    height: 40,
   },
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 16,
+    marginTop: 4,
   },
   button: {
-    paddingVertical: 4,
     paddingHorizontal: 8,
     marginRight: 8,
   },
   buttonText: {
     fontSize: 12,
+    margin: 0,
   },
   list: { 
     padding: 16, 
-    paddingBottom: 240
+    paddingBottom: 192
   },
   card: { 
     marginBottom: 16 
@@ -124,7 +127,7 @@ export const createHomeScreenStyles = (theme: MD3Theme) => StyleSheet.create<Sty
     position: "absolute", 
     margin: 16, 
     right: 0, 
-    bottom: 0 
+    bottom: 16 
   },
   modalOverlay: {
     flex: 1,
