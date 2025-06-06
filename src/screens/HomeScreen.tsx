@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
-  StyleSheet,
-  ScrollView,
-  Modal,
   Alert,
   ViewStyle,
   TextStyle,
@@ -34,7 +31,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import DraggableFlatList, {
   ScaleDecorator,
 } from "react-native-draggable-flatlist";
-import { parse, isSameDay, parseISO, set } from "date-fns";
 import {
   getProducts,
   Product,
@@ -110,14 +106,12 @@ export default function HomeScreen() {
   const [adjustmentIncrement, setAdjustmentIncrement] = useState(false);
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const theme = useTheme();
-  const [isMounted, setIsMounted] = useState(true);
   const [sortOrder, setSortOrder] = useState<
     "custom" | "alphabetical" | "quantityAsc" | "quantityDesc"
   >("custom");
   const [menuVisible, setMenuVisible] = useState(false);
   const [isImportModalVisible, setIsImportModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-
 
   const openMenu = () => setMenuVisible(true);
   const closeMenu = () => setMenuVisible(false);
@@ -163,14 +157,11 @@ export default function HomeScreen() {
   const loadProducts = async () => {
     try {
       const loadedProducts = await getProducts(listId);
-      if (isMounted) {
-        setProducts(loadedProducts);
-      }
+      setProducts(loadedProducts);
     } catch (error) {
       console.error("Erro ao carregar produtos:", error);
     }
   };
-
 
   const handleImportButtonClick = () => {
     setIsImportModalVisible(true);
@@ -180,22 +171,14 @@ export default function HomeScreen() {
     const loadAndSortProducts = async () => {
       try {
         const loadedProducts = await getProducts(listId);
-        if (isMounted) {
-          const sortedProducts = sortProducts(loadedProducts);
-          setProducts([...sortedProducts]);
-        }
+        const sortedProducts = sortProducts(loadedProducts);
+        setProducts([...sortedProducts]);
       } catch (error) {
         console.error("Erro ao carregar produtos:", error);
       }
     };
     loadAndSortProducts();
   }, [sortOrder]);
-
-  useEffect(() => {
-    return () => {
-      setIsMounted(false);
-    };
-  }, []);
 
   useFocusEffect(
     useCallback(() => {
