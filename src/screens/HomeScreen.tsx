@@ -47,6 +47,7 @@ import { RootStackParamList } from "../types/navigation";
 import { createHomeScreenStyles } from "../styles/HomeScreenStyles";
 import { getEmojiForProduct } from "../utils/stringUtils";
 import ImportModal from "../components/ImportModal";
+import useProducts from "../hooks/useProducts"
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -95,12 +96,12 @@ type Styles = {
 const searchSimilarityThreshold = 0.4;
 
 export default function HomeScreen() {
+  
   const route = useRoute<HomeScreenProps["route"]>();
   const listId = route.params?.listId ?? 1;
   const [listName, setListName] = useState("");
   const [isEditingListName, setIsEditingListName] = useState(false);
   const [listNameInput, setListNameInput] = useState("");
-  const [products, setProducts] = useState<Product[]>([]);
   const [isAdjusting, setIsAdjusting] = useState(false);
   const [adjustmentId, setAdjustmentId] = useState<number | null>(null);
   const [adjustmentIncrement, setAdjustmentIncrement] = useState(false);
@@ -112,6 +113,14 @@ export default function HomeScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [isImportModalVisible, setIsImportModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  
+  const {
+    products,
+    setProducts,
+    loadProducts,
+    updateQuantity,
+    removeProduct,
+  } = useProducts(listId, sortOrder, searchQuery);
 
   const openMenu = () => setMenuVisible(true);
   const closeMenu = () => setMenuVisible(false);
@@ -154,14 +163,6 @@ export default function HomeScreen() {
     return sortedProducts;
   };
 
-  const loadProducts = async () => {
-    try {
-      const loadedProducts = await getProducts(listId);
-      setProducts(loadedProducts);
-    } catch (error) {
-      console.error("Erro ao carregar produtos:", error);
-    }
-  };
 
   const handleImportButtonClick = () => {
     setIsImportModalVisible(true);
@@ -227,12 +228,7 @@ export default function HomeScreen() {
           text: "Excluir",
           style: "destructive",
           onPress: async () => {
-            try {
-              await deleteProduct(id);
-              loadProducts();
-            } catch (error) {
-              console.error("Erro ao deletar produto:", error);
-            }
+            removeProduct(id);
           },
         },
       ]
