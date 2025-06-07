@@ -55,44 +55,6 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<
 >;
 type HomeScreenProps = NativeStackScreenProps<RootStackParamList, "Home">;
 
-type Styles = {
-  container: ViewStyle;
-  header: ViewStyle;
-  searchContainer: ViewStyle;
-  searchInput: ViewStyle;
-  buttonRow: ViewStyle;
-  button: ViewStyle;
-  buttonText: TextStyle;
-  list: ViewStyle;
-  card: ViewStyle;
-  cardHeader: ViewStyle;
-  dragHandle: ViewStyle;
-  cardContent: ViewStyle;
-  quantityContainer: ViewStyle;
-  quantityButtons: ViewStyle;
-  quantityInputContainer: ViewStyle;
-  input: ViewStyle;
-  cardActions: ViewStyle;
-  fab: ViewStyle;
-  modalOverlay: ViewStyle;
-  modalContainer: ViewStyle;
-  modalTitle: TextStyle;
-  confirmationContent: ViewStyle;
-  textInput: TextStyle;
-  productInfo: ViewStyle;
-  existingProduct: ViewStyle;
-  similarProducts: ViewStyle;
-  productCompareContainer: ViewStyle;
-  productInfoColumn: ViewStyle;
-  similarProductsScroll: ViewStyle;
-  similarProductItemContainer: ViewStyle;
-  quantityText: TextStyle;
-  dateText: TextStyle;
-  similarProductsContainer: ViewStyle;
-  buttonContainer: ViewStyle;
-  sectionTitle: TextStyle;
-};
-
 const searchSimilarityThreshold = 0.4;
 
 export default function HomeScreen() {
