@@ -2,8 +2,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Alert,
-  ViewStyle,
-  TextStyle,
   Pressable,
   Clipboard,
 } from "react-native";
@@ -48,6 +46,7 @@ import { createHomeScreenStyles } from "../styles/HomeScreenStyles";
 import { getEmojiForProduct } from "../utils/stringUtils";
 import ImportModal from "../components/ImportModal";
 import useProducts from "../hooks/useProducts"
+import { sortProducts } from "../utils/sortUtils";
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -87,45 +86,6 @@ export default function HomeScreen() {
   const openMenu = () => setMenuVisible(true);
   const closeMenu = () => setMenuVisible(false);
 
-  const sortProducts = (productsToSort: Product[]) => {
-    let sortedProducts = [...productsToSort];
-
-    // If there's a search query, sort by similarity
-    if (searchQuery.trim()) {
-      const processedQuery = preprocessName(searchQuery);
-      sortedProducts.sort((a, b) => {
-        const similarityA = calculateSimilarity(
-          processedQuery,
-          preprocessName(a.name)
-        );
-        const similarityB = calculateSimilarity(
-          processedQuery,
-          preprocessName(b.name)
-        );
-        return similarityB - similarityA;
-      });
-      return sortedProducts;
-    }
-
-    // Otherwise use the selected sort order
-    switch (sortOrder) {
-      case "alphabetical":
-        sortedProducts.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      case "quantityAsc":
-        sortedProducts.sort((a, b) => a.quantity - b.quantity);
-        break;
-      case "quantityDesc":
-        sortedProducts.sort((a, b) => b.quantity - a.quantity);
-        break;
-      default:
-        sortedProducts.sort((a, b) => a.order - b.order);
-        break;
-    }
-    return sortedProducts;
-  };
-
-
   const handleImportButtonClick = () => {
     setIsImportModalVisible(true);
   };
@@ -134,7 +94,7 @@ export default function HomeScreen() {
     const loadAndSortProducts = async () => {
       try {
         const loadedProducts = await getProducts(listId);
-        const sortedProducts = sortProducts(loadedProducts);
+        const sortedProducts = sortProducts(loadedProducts, sortOrder, searchQuery);
         setProducts([...sortedProducts]);
       } catch (error) {
         console.error("Erro ao carregar produtos:", error);

@@ -5,49 +5,16 @@ import {
   deleteProduct,
   Product,
 } from "../database/database";
-import { calculateSimilarity, preprocessName } from "../utils/similarityUtils";
+import { sortProducts, SortOrder } from "../utils/sortUtils";
 
-export default function useProducts(listId: number, sortOrder: string, searchQuery: string) {
+export default function useProducts(listId: number, sortOrder: SortOrder, searchQuery: string) {
   const [products, setProducts] = useState<Product[]>([]);
 
-  const sortProducts = useCallback(
-    (productsToSort: Product[]): Product[] => {
-      let sorted = [...productsToSort];
-
-      if (searchQuery.trim()) {
-        const processedQuery = preprocessName(searchQuery);
-        sorted.sort((a, b) => {
-          const simA = calculateSimilarity(processedQuery, preprocessName(a.name));
-          const simB = calculateSimilarity(processedQuery, preprocessName(b.name));
-          return simB - simA;
-        });
-        return sorted;
-      }
-
-      switch (sortOrder) {
-        case "alphabetical":
-          sorted.sort((a, b) => a.name.localeCompare(b.name));
-          break;
-        case "quantityAsc":
-          sorted.sort((a, b) => a.quantity - b.quantity);
-          break;
-        case "quantityDesc":
-          sorted.sort((a, b) => b.quantity - a.quantity);
-          break;
-        default:
-          sorted.sort((a, b) => a.order - b.order);
-          break;
-      }
-
-      return sorted;
-    },
-    [sortOrder, searchQuery]
-  );
 
   const loadProducts = useCallback(async () => {
     try {
       const loaded = await getProducts(listId);
-      setProducts(sortProducts(loaded));
+      setProducts(sortProducts(loaded, sortOrder, searchQuery));
     } catch (err) {
       console.error("Erro ao carregar produtos:", err);
     }
