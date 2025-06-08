@@ -46,7 +46,8 @@ import { createHomeScreenStyles } from "../styles/HomeScreenStyles";
 import { getEmojiForProduct } from "../utils/stringUtils";
 import ImportModal from "../components/ImportModal";
 import useProducts from "../hooks/useProducts"
-import { sortProducts } from "../utils/sortUtils";
+import { sortProducts, SortOrder } from "../utils/sortUtils";
+import SearchBar from "../components/SearchBar";
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -68,9 +69,7 @@ export default function HomeScreen() {
   const [adjustmentIncrement, setAdjustmentIncrement] = useState(false);
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const theme = useTheme();
-  const [sortOrder, setSortOrder] = useState<
-    "custom" | "alphabetical" | "quantityAsc" | "quantityDesc"
-  >("custom");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("custom");
   const [menuVisible, setMenuVisible] = useState(false);
   const [isImportModalVisible, setIsImportModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -458,25 +457,7 @@ export default function HomeScreen() {
             onPress={handleListDelete}
           />
         </View>
-        <View style={styles.searchContainer}>
-          <PaperTextInput
-            placeholder="Buscar produtos..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            mode="outlined"
-            style={styles.searchInput}
-            right={
-              searchQuery.trim() ? (
-                <PaperTextInput.Icon
-                  icon="close"
-                  size={24}
-                  onPress={() => setSearchQuery("")}
-                  color={theme.colors.error}
-                />
-              ) : undefined
-            }
-          />
-        </View>
+        <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery}/>
         <View style={styles.buttonRow}>
           <Button
             mode="contained"
