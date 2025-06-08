@@ -3,8 +3,8 @@ import {
   View,
   Alert,
   Pressable,
-  Clipboard,
 } from "react-native";
+import * as Clipboard from 'expo-clipboard';
 import {
   TextInput as PaperTextInput,
   Button,
@@ -233,7 +233,7 @@ export default function HomeScreen() {
         const emoji = getEmojiForProduct(product.name);
         text += `- ${product.name}: ${product.quantity} ${emoji}\n`;
       });
-      await Clipboard.setString(text);
+      Clipboard.setStringAsync(text);
     } catch (error) {
       console.error("Erro ao salvar histórico e copiar lista:", error);
     }
