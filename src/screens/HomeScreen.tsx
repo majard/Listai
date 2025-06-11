@@ -40,7 +40,6 @@ import {
   updateListName,
   deleteList,
 } from "../database/database";
-import { calculateSimilarity, preprocessName } from "../utils/similarityUtils";
 import { RootStackParamList } from "../types/navigation";
 import { createHomeScreenStyles } from "../styles/HomeScreenStyles";
 import { getEmojiForProduct } from "../utils/stringUtils";
@@ -54,8 +53,6 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<
   "Home"
 >;
 type HomeScreenProps = NativeStackScreenProps<RootStackParamList, "Home">;
-
-const searchSimilarityThreshold = 0.4;
 
 export default function HomeScreen() {
   
@@ -80,6 +77,7 @@ export default function HomeScreen() {
     loadProducts,
     updateQuantity,
     removeProduct,
+    filteredProducts
   } = useProducts(listId, sortOrder, searchQuery);
 
   const openMenu = () => setMenuVisible(true);
@@ -345,34 +343,6 @@ export default function HomeScreen() {
       </ScaleDecorator>
     );
   };
-
-  const filteredProducts = products.filter((product) => {
-    const processedProductName = preprocessName(product.name);
-    const processedSearchQuery = preprocessName(searchQuery);
-
-    // If search query is empty, return all products
-    if (!processedSearchQuery) {
-      return true;
-    }
-
-    // Calculate the length threshold
-    const nameLength = processedProductName.length;
-    const queryLength = processedSearchQuery.length;
-    const lengthThreshold = Math.ceil(nameLength * 0.5); // 50% of the product name length
-
-    // Use a simple substring match if the query is less than 50% of the product name length
-    if (queryLength < lengthThreshold) {
-      return processedProductName.includes(processedSearchQuery);
-    }
-
-    // Calculate similarity if the query meets the length requirement
-    const similarity = calculateSimilarity(
-      processedProductName,
-      processedSearchQuery
-    );
-
-    return similarity >= searchSimilarityThreshold;
-  });
 
   const styles = createHomeScreenStyles(theme);
 
