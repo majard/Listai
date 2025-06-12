@@ -1,16 +1,13 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, Alert, Pressable } from "react-native";
+import { View, Alert, } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import {
   TextInput as PaperTextInput,
   Button,
   useTheme,
   Text,
-  Card,
   IconButton,
   FAB,
-  Menu,
-  Divider,
 } from "react-native-paper";
 import {
   useNavigation,
@@ -30,11 +27,12 @@ import { RootStackParamList } from "../types/navigation";
 import { createHomeScreenStyles } from "../styles/HomeScreenStyles";
 import { getEmojiForProduct } from "../utils/stringUtils";
 import ImportModal from "../components/ImportModal";
-import useProducts from "../hooks/useProducts";
+import useProducts from "../hooks/useProducts"; 
 import { SortOrder } from "../utils/sortUtils";
 import SearchBar from "../components/SearchBar";
 import { useList } from "../hooks/useList";
 import { SortMenu } from "../components/SortMenu";
+import { ProductCard } from "../components/ProductCard";
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -51,24 +49,17 @@ export default function HomeScreen() {
   const styles = createHomeScreenStyles(theme);
 
   const [sortOrder, setSortOrder] = useState<SortOrder>("custom");
-  const [menuVisible, setMenuVisible] = useState(false);
   const [isImportModalVisible, setIsImportModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Use useProducts hook for all product-related state and logic
   const {
-    products, // Retain for extraData in DraggableFlatList
-    filteredProducts, // The output of filtered and sorted products
+    products,
+    filteredProducts,
     loadProducts,
-    updateProductQuantity,
-    confirmRemoveProduct, // Handles the alert and removal
+    handleProductOrderChange,
     saveProductHistory,
-    startContinuousAdjustment,
-    stopContinuousAdjustment,
-    handleProductOrderChange, // Handles drag-and-drop order updates
   } = useProducts(listId, sortOrder, searchQuery);
 
-  // Use useList hook for all list-related state and logic
   const {
     listName,
     isEditingListName,
@@ -80,20 +71,21 @@ export default function HomeScreen() {
     setIsEditingListName,
   } = useList(listId);
 
-  const openMenu = () => setMenuVisible(true);
-  const closeMenu = () => setMenuVisible(false);
 
-  const handleImportButtonClick = () => {
+  const handleImportButtonClick = useCallback(() => {
     setIsImportModalVisible(true);
-  };
+  }, []);
 
-  // This useEffect triggers product reload when sortOrder changes.
-  // The actual sorting is handled inside useProducts.
+  const handleSortOrderChange = useCallback((order: SortOrder) => {
+    setSortOrder(order);
+  }, []);
+
+  // useFocusEffect is still crucial here to ensure the list refreshes
+  // after single product operations (update, delete) performed via useProduct.
   useEffect(() => {
     loadProducts();
   }, [sortOrder, loadProducts]);
 
-  // useFocusEffect should trigger loadProducts to refresh data when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       loadProducts();
@@ -132,97 +124,18 @@ export default function HomeScreen() {
       item: Product;
       drag: () => void;
       isActive: boolean;
-    }) => {
-      return (
-        <ScaleDecorator>
-          <Card style={[styles.card, { opacity: isActive ? 0.5 : 1 }]}>
-            <Pressable
-              onPress={() => navigation.navigate("EditProduct", { product: item })}
-              onLongPress={drag}
-              testID={`product-card-${item.id}`}
-            >
-              <Card.Content>
-                <View style={styles.cardHeader}>
-                  <View style={styles.dragHandle}>
-                    <Text variant="titleMedium">
-                      {item.name + " " + getEmojiForProduct(item.name)}
-                    </Text>
-                  </View>
-                  <View style={styles.cardActions}>
-                    <IconButton
-                      icon="pencil"
-                      size={20}
-                      onPress={() =>
-                        navigation.navigate("EditProduct", { product: item })
-                      }
-                      iconColor={theme.colors.primary}
-                    />
-                    <IconButton
-                      icon="delete"
-                      size={20}
-                      onPress={() => confirmRemoveProduct(item.id)} // Use from useProducts
-                      iconColor={theme.colors.error}
-                      testID={`delete-button-${item.id}`}
-                    />
-                  </View>
-                </View>
-                <View style={styles.cardContent}>
-                  <View style={styles.quantityContainer}>
-                    <View style={styles.quantityInputContainer}>
-                      <Text variant="bodyMedium">Quantidade: </Text>
-                      <PaperTextInput
-                        mode="outlined"
-                        dense
-                        value={item.quantity.toString()}
-                        onChangeText={(value) =>
-                          // Call the unified update function
-                          updateProductQuantity(item.id, value === "" ? 0 : parseInt(value, 10))
-                        }
-                        keyboardType="numeric"
-                        style={styles.input}
-                        testID={`quantity-text-input-${item.id}`}
-                      />
-                    </View>
-                    <View style={styles.quantityButtons}>
-                      <IconButton
-                        icon="minus"
-                        size={20}
-                        // Call the unified update function with calculation
-                        onPress={() => updateProductQuantity(item.id, Math.max(0, item.quantity - 1))}
-                        onLongPress={() =>
-                          startContinuousAdjustment(item.id, false) // Pass boolean directly
-                        }
-                        onPressOut={stopContinuousAdjustment}
-                      />
-                      <IconButton
-                        icon="plus"
-                        size={20}
-                        // Call the unified update function with calculation
-                        onPress={() => updateProductQuantity(item.id, item.quantity + 1)}
-                        onLongPress={() =>
-                          startContinuousAdjustment(item.id, true) // Pass boolean directly
-                        }
-                        onPressOut={stopContinuousAdjustment}
-                        testID={`increment-button-${item.id}`}
-                      />
-                    </View>
-                  </View>
-                </View>
-              </Card.Content>
-            </Pressable>
-          </Card>
-        </ScaleDecorator>
-      );
-    },
-    [
-      navigation,
-      styles,
-      theme,
-      confirmRemoveProduct,
-      updateProductQuantity,
-      startContinuousAdjustment,
-      stopContinuousAdjustment,
-    ]
+    }) => (
+      <ScaleDecorator>
+        <ProductCard
+          item={item}
+          drag={drag}
+          isActive={isActive}
+          // No need to pass updateProductQuantity, confirmRemoveProduct, etc. here
+          // as ProductCard will use useProduct hook internally.
+        />
+      </ScaleDecorator>
+    ),
+    [] // Dependencies are empty because ProductCard manages its own logic.
   );
 
   return (
@@ -269,6 +182,7 @@ export default function HomeScreen() {
           />
         </View>
         <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+
         <View style={styles.buttonRow}>
           <Button
             mode="contained"
@@ -290,16 +204,16 @@ export default function HomeScreen() {
             Importar
           </Button>
 
-         <SortMenu setSortOrder={setSortOrder} sortOrder={sortOrder} />
+          <SortMenu setSortOrder={handleSortOrderChange} sortOrder={sortOrder} />
         </View>
       </View>
       <DraggableFlatList
-        data={filteredProducts} // Call the function to get the latest filtered data
-        onDragEnd={handleProductOrderChange} // Use from useProducts
+        data={filteredProducts}
+        onDragEnd={handleProductOrderChange}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
-        extraData={products} // Still useful if `filteredProducts` changes often
+        extraData={products}
         testID="draggable-flatlist"
       />
       <FAB
