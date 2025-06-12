@@ -25,15 +25,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import DraggableFlatList, {
   ScaleDecorator,
 } from "react-native-draggable-flatlist";
-import { saveProductHistory, Product } from "../database/database"; // Removed other database imports
+import { Product } from "../database/database";
 import { RootStackParamList } from "../types/navigation";
 import { createHomeScreenStyles } from "../styles/HomeScreenStyles";
 import { getEmojiForProduct } from "../utils/stringUtils";
 import ImportModal from "../components/ImportModal";
-import useProducts from "../hooks/useProducts"; // Ensure this is the updated useProducts
+import useProducts from "../hooks/useProducts";
 import { SortOrder } from "../utils/sortUtils";
 import SearchBar from "../components/SearchBar";
-import { useList } from "../hooks/useList"; // Import the new hook
+import { useList } from "../hooks/useList";
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -59,8 +59,9 @@ export default function HomeScreen() {
     products, // Retain for extraData in DraggableFlatList
     filteredProducts, // The output of filtered and sorted products
     loadProducts,
-    updateProductQuantity, // Unified quantity update
+    updateProductQuantity,
     confirmRemoveProduct, // Handles the alert and removal
+    saveProductHistory,
     startContinuousAdjustment,
     stopContinuousAdjustment,
     handleProductOrderChange, // Handles drag-and-drop order updates
@@ -85,7 +86,7 @@ export default function HomeScreen() {
     setIsImportModalVisible(true);
   };
 
-  // This useEffect now just triggers product reload when sortOrder changes.
+  // This useEffect triggers product reload when sortOrder changes.
   // The actual sorting is handled inside useProducts.
   useEffect(() => {
     loadProducts();

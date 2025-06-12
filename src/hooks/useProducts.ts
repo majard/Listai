@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { getProducts, updateProduct, deleteProduct, Product, updateProductOrder } from "../database/database"; // Added updateProductOrder
+import { getProducts, updateProduct, deleteProduct, Product, updateProductOrder, saveProductHistory } from "../database/database"; // Added updateProductOrder
 import { sortProducts, SortOrder } from "../utils/sortUtils";
 import { preprocessName, calculateSimilarity } from "../utils/similarityUtils";
 import { Alert } from "react-native"; // For confirm delete
@@ -198,6 +198,7 @@ export default function useProducts(listId: number, sortOrder: SortOrder, search
     loadProducts,
     updateProductQuantity,
     confirmRemoveProduct,
+    saveProductHistory,
     startContinuousAdjustment,
     stopContinuousAdjustment,
     handleProductOrderChange,
