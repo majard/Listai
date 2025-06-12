@@ -34,6 +34,7 @@ import useProducts from "../hooks/useProducts";
 import { SortOrder } from "../utils/sortUtils";
 import SearchBar from "../components/SearchBar";
 import { useList } from "../hooks/useList";
+import { SortMenu } from "../components/SortMenu";
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -289,52 +290,7 @@ export default function HomeScreen() {
             Importar
           </Button>
 
-          <Menu
-            visible={menuVisible}
-            onDismiss={closeMenu}
-            anchor={
-              <Button
-                icon="sort"
-                onPress={openMenu}
-                style={styles.button}
-                labelStyle={styles.buttonText}
-              >
-                Ordenar
-              </Button>
-            }
-          >
-            <Menu.Item
-              onPress={() => {
-                setSortOrder("custom");
-                closeMenu();
-              }}
-              title="Ordem Personalizada"
-            />
-            <Divider />
-            <Menu.Item
-              onPress={() => {
-                setSortOrder("alphabetical");
-                closeMenu();
-              }}
-              title="Alfabética"
-            />
-            <Divider />
-            <Menu.Item
-              onPress={() => {
-                setSortOrder("quantityDesc");
-                closeMenu();
-              }}
-              title="Quantidade (Maior Primeiro)"
-            />
-            <Divider />
-            <Menu.Item
-              onPress={() => {
-                setSortOrder("quantityAsc");
-                closeMenu();
-              }}
-              title="Quantidade (Menor Primeiro)"
-            />
-          </Menu>
+         <SortMenu setSortOrder={setSortOrder} sortOrder={sortOrder} />
         </View>
       </View>
       <DraggableFlatList
