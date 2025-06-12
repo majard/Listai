@@ -1,4 +1,3 @@
-// hooks/useProduct.ts
 import { useState, useEffect, useCallback, useRef } from "react";
 import { updateProduct, deleteProduct } from "../database/database";
 import { Alert } from "react-native";
@@ -6,25 +5,58 @@ import { Alert } from "react-native";
 interface UseProductProps {
   productId: number;
   initialQuantity: number;
-  // Optional: Callback to notify parent (e.g., the list) about a change.
-  // For this scenario, useFocusEffect in HomeScreen already handles list reload,
-  // but for more immediate feedback or complex scenarios, these could be useful.
-  onQuantityUpdated?: (id: number, newQuantity: number) => void;
-  onProductDeleted?: (id: number) => void;
+  onProductUpdated?: () => void;
 }
 
 const updateDebounceDelay = 300; // Debounce delay for single product DB updates
-const initialContinuousDelay = 300; // Customizable delay for continuous adjustment
-const intervalContinuousDelay = 100; // Customizable interval for continuous adjustment
+const initialContinuousDelay = 300; // Delay before continuous adjustment starts repeating
+const intervalContinuousDelay = 100; // Interval for continuous adjustment repeats
 
 export const useProduct = ({
   productId,
   initialQuantity,
-  onQuantityUpdated,
-  onProductDeleted,
+  onProductUpdated,
 }: UseProductProps) => {
   const [quantity, setQuantity] = useState(initialQuantity);
-  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Ref for debouncing single updates
+  // Ref to hold the most current quantity for the final debounced DB update
+  const latestQuantityRef = useRef(initialQuantity);
+
+  // --- Debounced DB Update Logic ---
+  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const debouncedDbUpdate = useCallback(async (id: number, newQuantity: number) => {
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current);
+    }
+    updateTimeoutRef.current = setTimeout(async () => {
+      try {
+        console.log(`DB Update: Atualizando produto ${id} para ${newQuantity}`);
+        await updateProduct(id, newQuantity);
+      } catch (err) {
+        console.error(`Erro ao atualizar produto ${id}:`, err);
+      } finally {
+        updateTimeoutRef.current = null;
+      }
+    }, updateDebounceDelay);
+  }, []); // Empty dependencies because it acts on id and newQuantity args
+
+
+  // --- Public Quantity Update Function (UI + Triggers Debounced DB Update) ---
+  const updateProductQuantity = useCallback(
+    (newQuantity: number) => {
+      const clampedQuantity = Math.max(0, newQuantity); // Ensure quantity doesn't go below zero
+      setQuantity(clampedQuantity); // Optimistic UI update
+      latestQuantityRef.current = clampedQuantity; // Keep track of the latest quantity for DB update
+
+      if (onProductUpdated) {
+        onProductUpdated();
+      }
+
+      // Trigger the debounced DB update
+      debouncedDbUpdate(productId, clampedQuantity);
+    },
+    [productId, onProductUpdated, debouncedDbUpdate]
+  );
 
   // --- Continuous Adjustment States and Refs ---
   const [isAdjusting, setIsAdjusting] = useState(false);
@@ -32,47 +64,28 @@ export const useProduct = ({
   const continuousAdjustmentIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const continuousAdjustmentInitialTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Update internal quantity state if initialQuantity prop changes (e.g., from parent list reload)
+  // Sync internal quantity state if initialQuantity prop changes
   useEffect(() => {
     setQuantity(initialQuantity);
+    latestQuantityRef.current = initialQuantity; // Also sync the ref
   }, [initialQuantity]);
 
-  // --- Product Quantity Update Logic (Debounced for DB writes) ---
-  const updateProductQuantity = useCallback(
-    async (newQuantity: number) => {
-      // Optimistic UI update
-      setQuantity(newQuantity);
-      if (onQuantityUpdated) {
-        onQuantityUpdated(productId, newQuantity);
-      }
-
-      // Clear any previous debounced update for this product
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current);
-      }
-
-      // Set a new debounced update
-      updateTimeoutRef.current = setTimeout(async () => {
-        try {
-          await updateProduct(productId, newQuantity);
-        } catch (err) {
-          console.error(`Erro ao atualizar produto ${productId}:`, err);
-          // Optionally revert UI if DB update fails heavily, or trigger a full list reload
-          // For now, rely on useFocusEffect in HomeScreen for eventual consistency.
-        } finally {
-          updateTimeoutRef.current = null;
-        }
-      }, updateDebounceDelay);
-    },
-    [productId, onQuantityUpdated]
-  );
-
-  // --- Continuous Quantity Adjustment Logic ---
+  // --- Continuous Quantity Adjustment Effect ---
   useEffect(() => {
+    // Cleanup function for previous intervals/timeouts
+    const cleanup = () => {
+      if (continuousAdjustmentInitialTimeoutRef.current) {
+        clearTimeout(continuousAdjustmentInitialTimeoutRef.current);
+        continuousAdjustmentInitialTimeoutRef.current = null;
+      }
+      if (continuousAdjustmentIntervalRef.current) {
+        clearInterval(continuousAdjustmentIntervalRef.current);
+        continuousAdjustmentIntervalRef.current = null;
+      }
+    };
+
     if (isAdjusting) {
-      // Clear any existing timers just in case
-      if (continuousAdjustmentInitialTimeoutRef.current) clearTimeout(continuousAdjustmentInitialTimeoutRef.current);
-      if (continuousAdjustmentIntervalRef.current) clearInterval(continuousAdjustmentIntervalRef.current);
+      cleanup(); // Clear any existing timers before starting new ones
 
       continuousAdjustmentInitialTimeoutRef.current = setTimeout(() => {
         continuousAdjustmentIntervalRef.current = setInterval(() => {
@@ -80,40 +93,34 @@ export const useProduct = ({
             const newQuantity = adjustmentIncrement
               ? prevQuantity + 1
               : Math.max(0, prevQuantity - 1);
-            // Call the debounced update for the database
-            updateProductQuantity(newQuantity);
+            latestQuantityRef.current = newQuantity; // Update ref for eventual DB save
             return newQuantity;
           });
         }, intervalContinuousDelay);
       }, initialContinuousDelay);
     }
 
-    return () => {
-      if (continuousAdjustmentInitialTimeoutRef.current) clearTimeout(continuousAdjustmentInitialTimeoutRef.current);
-      if (continuousAdjustmentIntervalRef.current) clearInterval(continuousAdjustmentIntervalRef.current);
-    };
-  }, [isAdjusting, adjustmentIncrement, updateProductQuantity]);
+    return cleanup; // Cleanup on component unmount or `isAdjusting` becoming false
+  }, [isAdjusting, adjustmentIncrement]);
 
 
   const startContinuousAdjustment = useCallback((increment: boolean) => {
-    // Perform an immediate update on the initial press
+    // Perform an immediate UI update on the initial press
     setQuantity((prevQuantity) => {
       const newQuantity = increment ? prevQuantity + 1 : Math.max(0, prevQuantity - 1);
-      updateProductQuantity(newQuantity); // Debounced DB update
+      latestQuantityRef.current = newQuantity; // Update ref
       return newQuantity;
     });
 
     setAdjustmentIncrement(increment);
     setIsAdjusting(true);
-  }, [updateProductQuantity]);
+  }, []); // Dependencies are empty as it sets flags and updates state
 
   const stopContinuousAdjustment = useCallback(() => {
     setIsAdjusting(false);
-    // Ensure any pending debounced updates from the continuous adjustment complete
-    if (updateTimeoutRef.current) {
-      clearTimeout(updateTimeoutRef.current); // Clear if it was part of a continuous chain
-    }
-  }, []);
+    // When adjustment stops, trigger a final debounced DB update with the latest quantity
+    debouncedDbUpdate(productId, latestQuantityRef.current);
+  }, [productId, debouncedDbUpdate]);
 
 
   // --- Remove Product Logic ---
@@ -129,10 +136,9 @@ export const useProduct = ({
           onPress: async () => {
             try {
               await deleteProduct(productId);
-              if (onProductDeleted) {
-                onProductDeleted(productId);
+              if (onProductUpdated) {
+                onProductUpdated();
               }
-              // Parent list will re-load or filter out this product
             } catch (err) {
               console.error(`Erro ao deletar produto ${productId}:`, err);
               Alert.alert("Erro", "Não foi possível excluir o produto.");
@@ -141,7 +147,20 @@ export const useProduct = ({
         },
       ]
     );
-  }, [productId, onProductDeleted]);
+  }, [productId, onProductUpdated]);
+
+  // --- Cleanup on unmount ---
+  useEffect(() => {
+    return () => {
+      // Clear any pending debounced updates if component unmounts
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+      // Also clear continuous adjustment timers if active
+      if (continuousAdjustmentInitialTimeoutRef.current) clearTimeout(continuousAdjustmentInitialTimeoutRef.current);
+      if (continuousAdjustmentIntervalRef.current) clearInterval(continuousAdjustmentIntervalRef.current);
+    };
+  }, []);
 
   return {
     quantity,

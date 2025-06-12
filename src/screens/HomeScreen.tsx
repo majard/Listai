@@ -130,12 +130,10 @@ export default function HomeScreen() {
           item={item}
           drag={drag}
           isActive={isActive}
-          // No need to pass updateProductQuantity, confirmRemoveProduct, etc. here
-          // as ProductCard will use useProduct hook internally.
         />
       </ScaleDecorator>
     ),
-    [] // Dependencies are empty because ProductCard manages its own logic.
+    []
   );
 
   return (
