@@ -66,7 +66,7 @@ export default function HomeScreen() {
     handleProductOrderChange, // Handles drag-and-drop order updates
   } = useProducts(listId, sortOrder, searchQuery);
 
-  // Use useListManagement hook for all list-related state and logic
+  // Use useList hook for all list-related state and logic
   const {
     listName,
     isEditingListName,
@@ -76,7 +76,7 @@ export default function HomeScreen() {
     handleListNameSave,
     handleListDelete,
     setIsEditingListName,
-  } = useListManagement(listId);
+  } = useList(listId);
 
   const openMenu = () => setMenuVisible(true);
   const closeMenu = () => setMenuVisible(false);
