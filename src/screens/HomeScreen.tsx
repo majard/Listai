@@ -25,7 +25,7 @@ import DraggableFlatList, {
 import { Product } from "../database/database";
 import { RootStackParamList } from "../types/navigation";
 import { createHomeScreenStyles } from "../styles/HomeScreenStyles";
-import { getEmojiForProduct } from "../utils/stringUtils";
+import { generateStockListText } from "../utils/stringUtils";
 import ImportModal from "../components/ImportModal";
 import useProducts from "../hooks/useProducts"; 
 import { SortOrder } from "../utils/sortUtils";
@@ -82,31 +82,17 @@ export default function HomeScreen() {
 
   // useFocusEffect is still crucial here to ensure the list refreshes
   // after single product operations (update, delete) performed via useProduct.
-  useEffect(() => {
-    loadProducts();
-  }, [sortOrder, loadProducts]);
 
   useFocusEffect(
     useCallback(() => {
       loadProducts();
-    }, [loadProducts])
+    }, [sortOrder, loadProducts])
   );
 
-  const generateAndCopyStockList = async () => {
+  const saveAndCopyStockList = async () => {
     try {
       await saveProductHistory();
-      const today = new Date();
-      const dateStr = today.toLocaleDateString("pt-BR", {
-        day: "2-digit",
-        month: "2-digit",
-      });
-      let text = `Boa noite! ${dateStr}\n\n`;
-      text += "Aqui está a lista de produção do dia:\n\n";
-      // Use the 'products' state directly here, as it represents the current list.
-      products.forEach((product) => {
-        const emoji = getEmojiForProduct(product.name);
-        text += `- ${product.name}: ${product.quantity} ${emoji}\n`;
-      });
+      const text = generateStockListText(products);
       Clipboard.setStringAsync(text);
       Alert.alert("Sucesso", "Lista de estoque copiada para a área de transferência!");
     } catch (error) {
@@ -184,7 +170,7 @@ export default function HomeScreen() {
         <View style={styles.buttonRow}>
           <Button
             mode="contained"
-            onPress={generateAndCopyStockList}
+            onPress={saveAndCopyStockList}
             style={styles.button}
             icon="content-copy"
             labelStyle={styles.buttonText}

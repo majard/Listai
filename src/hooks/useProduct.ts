@@ -30,7 +30,6 @@ export const useProduct = ({
     }
     updateTimeoutRef.current = setTimeout(async () => {
       try {
-        console.log(`DB Update: Atualizando produto ${id} para ${newQuantity}`);
         await updateProduct(id, newQuantity);
       } catch (err) {
         console.error(`Erro ao atualizar produto ${id}:`, err);
