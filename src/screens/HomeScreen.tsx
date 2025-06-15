@@ -1,12 +1,9 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { View, Alert, } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import {
-  TextInput as PaperTextInput,
   Button,
   useTheme,
-  Text,
-  IconButton,
   FAB,
 } from "react-native-paper";
 import {
@@ -27,12 +24,13 @@ import { RootStackParamList } from "../types/navigation";
 import { createHomeScreenStyles } from "../styles/HomeScreenStyles";
 import { generateStockListText } from "../utils/stringUtils";
 import ImportModal from "../components/ImportModal";
-import useProducts from "../hooks/useProducts"; 
+import useProducts from "../hooks/useProducts";
 import { SortOrder } from "../utils/sortUtils";
 import SearchBar from "../components/SearchBar";
 import { useList } from "../hooks/useList";
 import { SortMenu } from "../components/SortMenu";
 import { ProductCard } from "../components/ProductCard";
+import { EditableName } from "../components/EditableName";
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -62,13 +60,8 @@ export default function HomeScreen() {
 
   const {
     listName,
-    isEditingListName,
-    listNameInput,
-    setListNameInput,
-    handleListNameEdit,
     handleListNameSave,
     handleListDelete,
-    setIsEditingListName,
   } = useList(listId);
 
 
@@ -126,45 +119,12 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         {/* List Name Editing/Display */}
-        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
-          {isEditingListName ? (
-            <>
-              <PaperTextInput
-                value={listNameInput}
-                onChangeText={setListNameInput}
-                style={{ flex: 1, marginRight: 8 }}
-                mode="outlined"
-                dense
-              />
-              <IconButton
-                icon="check"
-                iconColor={theme.colors.primary}
-                onPress={handleListNameSave}
-              />
-              <IconButton
-                icon="close"
-                iconColor={theme.colors.error}
-                onPress={() => setIsEditingListName(false)}
-              />
-            </>
-          ) : (
-            <>
-              <Text variant="titleLarge" style={{ flex: 1 }}>
-                {listName}
-              </Text>
-              <IconButton
-                icon="pencil"
-                iconColor={theme.colors.primary}
-                onPress={handleListNameEdit}
-              />
-            </>
-          )}
-          <IconButton
-            icon="delete"
-            iconColor={theme.colors.error}
-            onPress={handleListDelete}
-          />
-        </View>
+        <EditableName
+          name={listName}
+          handleSave={handleListNameSave}
+          handleDelete={handleListDelete}
+        />
+
         <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
 
         <View style={styles.buttonRow}>

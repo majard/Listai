@@ -13,8 +13,6 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<
 export const useList = (listId: number) => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const [listName, setListName] = useState("");
-  const [isEditingListName, setIsEditingListName] = useState(false);
-  const [listNameInput, setListNameInput] = useState("");
 
   useEffect(() => {
     getListById(listId).then((list) => {
@@ -22,18 +20,12 @@ export const useList = (listId: number) => {
     });
   }, [listId]);
 
-  const handleListNameEdit = useCallback(() => {
-    setIsEditingListName(true);
-    setListNameInput(listName);
-  }, [listName]);
-
-  const handleListNameSave = useCallback(async () => {
+  const handleListNameSave = useCallback(async (listNameInput: string) => {
     if (listNameInput.trim()) {
       await updateListName(listId, listNameInput.trim());
       setListName(listNameInput.trim());
-      setIsEditingListName(false);
     }
-  }, [listId, listNameInput]);
+  }, [listId]);
 
   const handleListDelete = useCallback(() => {
     Alert.alert("Excluir Lista", "Tem certeza que deseja excluir esta lista?", [
@@ -51,12 +43,7 @@ export const useList = (listId: number) => {
 
   return {
     listName,
-    isEditingListName,
-    listNameInput,
-    setListNameInput,
-    handleListNameEdit,
     handleListNameSave,
     handleListDelete,
-    setIsEditingListName, // Expose for closing edit mode directly
   };
 };
