@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { IconButton, TextInput, Text, useTheme } from 'react-native-paper';
 
@@ -17,6 +17,11 @@ export const EditableName: React.FC<EditableNameProps> = ({
     const [isEditing, setIsEditing] = useState(false);
     const [input, setInput] = useState(name);
 
+    const handleEdit = () => {
+        setIsEditing(true);
+        setInput(name);
+    };
+
     return (
         <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
             {isEditing ? (
@@ -31,7 +36,10 @@ export const EditableName: React.FC<EditableNameProps> = ({
                     <IconButton
                         icon="check"
                         iconColor={theme.colors.primary}
-                        onPress={() => handleSave(input)}
+                        onPress={() => {
+                            handleSave(input);
+                            setIsEditing(false);
+                        }}
                     />
                     <IconButton
                         icon="close"
@@ -47,7 +55,7 @@ export const EditableName: React.FC<EditableNameProps> = ({
                     <IconButton
                         icon="pencil"
                         iconColor={theme.colors.primary}
-                        onPress={() => setIsEditing(true)}
+                        onPress={handleEdit}
                     />
                 </>
             )}
